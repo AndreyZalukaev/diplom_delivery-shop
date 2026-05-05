@@ -5,6 +5,7 @@ import StarRating from "./StarRating";
 import Link from "next/link";
 import { CONFIG } from "@/config/config";
 import FavoriteButton from "./FavoriteButton";
+import AddToCartButton from "./AddToCartButton";
 
 const cardDiscountPercent = CONFIG.CARD_DISCOUNT_PERCENT;
 
@@ -91,9 +92,7 @@ const ProductCard = ({
           {ratingValue > 0 && <StarRating rating={ratingValue} />}
         </div>
       </Link>
-      <button className="absolute border bottom-2 left-2 right-2 border-(--color-primary) hover:text-white hover:bg-[#ff6633] hover:border-transparent active:shadow-(--shadow-button-active) h-10 rounded justify-center items-center text-(--color-primary) transition-all duration-300 cursor-pointer select-none">
-        В корзину
-      </button>
+      <AddToCartButton productId={String(id)} />
     </div>
   );
 };

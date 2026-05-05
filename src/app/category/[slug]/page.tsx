@@ -9,7 +9,7 @@ import FilterButtons from "./FilterButtons";
 import FilterControls from "./FilterControls";
 import PriceFilter from "./PriceFilter";
 import DropFilter from "./DropFilter";
-import { cookies } from "next/headers";
+import { getServerUserId } from "@/utils/getServerUserId";
 
 interface CategoryPageProps {
   params: Promise<{ slug: string }>;
@@ -32,20 +32,6 @@ async function getCategoryBySlug(slug: string) {
   return result.rows[0] || null;
 }
 
-async function getServerUserId(): Promise<number | null> {
-  try {
-    const cookieStore = await cookies();
-    const userCookie = cookieStore.get("user");
-    console.log("getServerUserId: userCookie", userCookie?.value);
-    if (!userCookie?.value) return null;
-    const userData = JSON.parse(userCookie.value);
-    console.log("getServerUserId: userId", userData.id);
-    return userData.id || null;
-  } catch (error) {
-    console.error("getServerUserId error:", error);
-    return null;
-  }
-}
 
 async function CategoryContent({ slug, searchParams }: { slug: string; searchParams: any }) {
   const category = await getCategoryBySlug(slug);

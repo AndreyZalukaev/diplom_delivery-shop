@@ -21,11 +21,14 @@ export async function GET(
     const client = await pool.connect();
     try {
       const result = await client.query(
-        `SELECT 
-          id, name, description, base_price, discount_percent,
-          rating_rate, rating_count, article, manufacturer, brand, country,
+        `SELECT
+          id, name, description,
+          base_price as "basePrice",
+          discount_percent as "discountPercent",
+          jsonb_build_object('rate', rating_rate, 'count', rating_count) as rating,
+          article, manufacturer, brand, country,
           img, weight, quantity, tags
-        FROM products 
+        FROM products
         WHERE id = $1`,
         [productId]
       );

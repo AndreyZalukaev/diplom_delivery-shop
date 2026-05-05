@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { cookies } from "next/headers";
+import { getServerUserId } from "@/utils/getServerUserId";
 import { getReviewsWord } from "@/utils/reviewsWord";
 import Bonuses from "./_components/Bonuses";
 import CartButton from "./_components/CartButton";
@@ -38,17 +38,6 @@ async function getProduct(id: number) {
   }
 }
 
-async function getServerUserId() {
-  const cookieStore = await cookies();
-  const userCookie = cookieStore.get("user");
-  if (!userCookie?.value) return null;
-  try {
-    const user = JSON.parse(userCookie.value);
-    return user.id || null;
-  } catch {
-    return null;
-  }
-}
 
 export async function generateMetadata({ params }: ProductPageProps) {
   const { id } = await params;
@@ -100,7 +89,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
           </div>
           <ProductOffer discountedPrice={discountedPrice} cardPrice={cardPrice} />
           <Bonuses bonus={bonusAmount} />
-          <CartButton />
+          <CartButton productId={String(product.id)} />
           <ShareButton title={product.name} className="mt-4" />
           <AdditionalInfo
             brand={product.brand}

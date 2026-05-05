@@ -6,7 +6,8 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
-    "lint": "next lint"
+    "lint": "next lint",
+    "update-delivery-dates": "curl -s http://localhost:3000/api/cron/update-delivery-dates?secret=cron-secret-key-2026"
   },
   "dependencies": {
     "@faker-js/faker": "^9.9.0",

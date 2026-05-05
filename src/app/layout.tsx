@@ -6,6 +6,7 @@ import Footer from "../components/Footer";
 import { Suspense } from "react";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { RegFormProvider } from "@/contexts/RegFormContext";
+import { CartProvider } from "@/contexts/CartContext";
 
 const rubik = localFont({
   src: [
@@ -36,12 +37,14 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body className={`${rubik.variable} font-sans`}>
+        <CartProvider>
         <RegFormProvider>
           <Header />
           <Suspense fallback={<div />}><Breadcrumbs /></Suspense>
           {children}
           <Footer />
         </RegFormProvider>
+        </CartProvider>
       </body>
     </html>
   );

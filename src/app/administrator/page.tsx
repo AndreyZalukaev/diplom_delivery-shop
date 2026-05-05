@@ -31,6 +31,25 @@ const AdminPanel = () => {
             <p className="text-gray-500 text-sm">Просмотр, редактирование и управление ролями пользователей</p>
           </Link>
 
+          {/* График доставки */}
+          <Link
+            href="/administrator/delivery-times"
+            className="block bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 p-6 border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-[#ff6633]/10 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-[#ff6633]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-[#414141] mb-2">График доставки</h3>
+            <p className="text-gray-500 text-sm">Управление временными слотами доставки</p>
+          </Link>
+
           {/* Заказы (placeholder) */}
           <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 opacity-60">
             <div className="flex items-center justify-between mb-4">
