@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import IconVision from "../../../components/svg/IconVision";
-import Tooltip from './Tooltip';
+import Tooltip from '@/app/(auth)/_components/Tooltip';
 import { formStyles } from '../styles';
 
 interface PasswordInputProps {

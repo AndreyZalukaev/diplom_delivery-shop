@@ -19,6 +19,7 @@ const ProductCard = ({
   rating,
   tags,
   userId,
+  quantity = 0,
   onRemoveFromFavorites,
 }: ProductCardProps & { userId?: number | null; onRemoveFromFavorites?: () => void }) => {
   console.log("ProductCard: id:", id, "userId:", userId);
@@ -92,7 +93,7 @@ const ProductCard = ({
           {ratingValue > 0 && <StarRating rating={ratingValue} />}
         </div>
       </Link>
-      <AddToCartButton productId={String(id)} />
+      <AddToCartButton productId={String(id)} availableQuantity={quantity || 0} />
     </div>
   );
 };

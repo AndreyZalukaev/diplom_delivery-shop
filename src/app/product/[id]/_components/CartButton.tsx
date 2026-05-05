@@ -2,18 +2,16 @@
 
 import { addToCartAction } from "@/actions/addToCartActions";
 import { removeMultipleOrderItemsAction, updateOrderItemQuantityAction } from "@/actions/orderActions";
-import CartActionMessage from "@/components/CartActionMessage";
 import { useCart } from "@/contexts/CartContext";
 import QuantitySelector from "@/app/(cart)/cart/_components/QuantitySelector";
+import Tooltip from "@/app/(auth)/_components/Tooltip";
 import Image from "next/image";
 import { useState } from "react";
 
 const CartButton = ({ productId }: { productId: string }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<{
-    success: boolean;
-    message: string;
-  } | null>(null);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipMessage, setTooltipMessage] = useState("");
 
   const { cartItems, updateCart, fetchCart } = useCart();
 
@@ -21,21 +19,26 @@ const CartButton = ({ productId }: { productId: string }) => {
   const currentQuantity = cartItem?.quantity || 0;
   const isInCart = currentQuantity > 0;
 
+  const showMessage = (message: string) => {
+    setTooltipMessage(message);
+    setShowTooltip(true);
+    setTimeout(() => setShowTooltip(false), 3000);
+  };
+
   const handleAddToCart = async () => {
     setIsLoading(true);
-    setMessage(null);
+    setShowTooltip(false);
 
     try {
       const result = await addToCartAction(productId);
-      setMessage(result);
+      if (result.message) {
+        showMessage(result.message);
+      }
       if (result.success) {
         await fetchCart();
       }
     } catch {
-      setMessage({
-        success: false,
-        message: "Ошибка при добавлении в корзину",
-      });
+      showMessage("Ошибка при добавлении в корзину");
     } finally {
       setIsLoading(false);
     }
@@ -44,6 +47,7 @@ const CartButton = ({ productId }: { productId: string }) => {
   const handleQuantityUpdate = async (newQuantity: number) => {
     if (newQuantity < 0 || isLoading) return;
     setIsLoading(true);
+    setShowTooltip(false);
 
     try {
       if (newQuantity === 0) {
@@ -68,39 +72,39 @@ const CartButton = ({ productId }: { productId: string }) => {
 
   if (isInCart) {
     return (
-      <QuantitySelector
-        quantity={currentQuantity}
-        isUpdating={isLoading}
-        isOutOfStock={false}
-        onDecrement={() => handleQuantityUpdate(currentQuantity - 1)}
-        onIncrement={() => handleQuantityUpdate(currentQuantity + 1)}
-        onProductCard={true}
-      />
+      <div className="relative mt-4">
+        {showTooltip && <Tooltip text={tooltipMessage} position="top" cardPosition={true} />}
+        <QuantitySelector
+          quantity={currentQuantity}
+          isUpdating={isLoading}
+          isOutOfStock={false}
+          onDecrement={() => handleQuantityUpdate(currentQuantity - 1)}
+          onIncrement={() => handleQuantityUpdate(currentQuantity + 1)}
+          onProductCard={true}
+        />
+      </div>
     );
   }
 
   return (
     <div className="relative mt-4">
-      <form action={handleAddToCart}>
-        <button
-          disabled={isLoading}
-          className="h-10 md:h-15 w-full bg-[#ff6633] text-white text-base md:text-2xl p-4 flex justify-center items-center rounded hover:shadow-article active:shadow-button-active duration-300 cursor-pointer relative"
-        >
-          <Image
-            src="/icons-products/icon-shopping-cart.svg"
-            alt="Корзина"
-            width={32}
-            height={32}
-            className="absolute left-4"
-          />
-          <p className="text-center">
-            {isLoading ? "..." : "В корзину"}
-          </p>
-        </button>
-      </form>
-      {message && (
-        <CartActionMessage message={message} onClose={() => setMessage(null)} />
-      )}
+      {showTooltip && <Tooltip text={tooltipMessage} position="top" cardPosition={true} />}
+      <button
+        onClick={handleAddToCart}
+        disabled={isLoading}
+        className="h-10 md:h-15 w-full bg-[#ff6633] text-white text-base md:text-2xl p-4 flex justify-center items-center rounded hover:shadow-article active:shadow-button-active duration-300 cursor-pointer relative"
+      >
+        <Image
+          src="/icons-products/icon-shopping-cart.svg"
+          alt="Корзина"
+          width={32}
+          height={32}
+          className="absolute left-4"
+        />
+        <p className="text-center">
+          {isLoading ? "..." : "В корзину"}
+        </p>
+      </button>
     </div>
   );
 };

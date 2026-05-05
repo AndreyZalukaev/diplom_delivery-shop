@@ -1,5 +1,5 @@
+import pool from "@/lib/pg";
 import { CONFIG } from "@/config/config";
-import { query } from "@/utils/db";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -7,8 +7,9 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
+    const userId = url.searchParams.get("userId");
     const userPurchasesLimit = url.searchParams.get("userPurchasesLimit");
-    
+
     let page = parseInt(url.searchParams.get("page") || "1");
     let limit = parseInt(url.searchParams.get("limit") || CONFIG.ITEMS_PER_PAGE.toString());
 
@@ -18,24 +19,38 @@ export async function GET(request: Request) {
 
     const offset = (page - 1) * limit;
 
-    const userResult = await query(`SELECT id FROM users LIMIT 1`);
+    if (!userId) {
+      return NextResponse.json({ products: [], totalCount: 0 });
+    }
+
+    const userResult = await pool.query(
+      "SELECT purchases FROM users WHERE id = $1",
+      [userId]
+    );
 
     if (userResult.rows.length === 0) {
       return NextResponse.json({ products: [], totalCount: 0 });
     }
 
-    const userId = userResult.rows[0].id;
+    const rawPurchases = userResult.rows[0].purchases;
+    let productIds: number[] = [];
 
-    const purchasesResult = await query(
-      `SELECT product_id FROM purchases WHERE user_id = $1 ORDER BY purchase_date DESC`,
-      [userId]
-    );
+    if (Array.isArray(rawPurchases)) {
+      productIds = rawPurchases.map(Number).filter(n => !isNaN(n));
+    } else if (typeof rawPurchases === 'string') {
+      productIds = rawPurchases
+        .replace(/[{}]/g, '')
+        .split(',')
+        .map(Number)
+        .filter(n => !isNaN(n));
+    } else if (rawPurchases && typeof rawPurchases === 'object') {
+      productIds = Object.values(rawPurchases).map(Number).filter(n => !isNaN(n));
+    }
 
-    if (purchasesResult.rows.length === 0) {
+    if (productIds.length === 0) {
       return NextResponse.json({ products: [], totalCount: 0 });
     }
 
-    const productIds = purchasesResult.rows.map(p => p.product_id);
     const totalCount = productIds.length;
 
     if (userPurchasesLimit) {
@@ -46,28 +61,22 @@ export async function GET(request: Request) {
         return NextResponse.json([]);
       }
 
-      const productsResult = await query(
+      const productsResult = await pool.query(
         `SELECT
-          id, img, title, description,
+          id, img, name, description,
           base_price as "basePrice",
           discount_percent as "discountPercent",
           jsonb_build_object('rate', rating_rate, 'count', rating_count) as rating,
           tags, weight, quantity
         FROM products
-        WHERE id = ANY($1::int[])`,
+        WHERE id = ANY($1::bigint[])`,
         [limitedIds]
       );
 
-      const productsMap = new Map();
-      productsResult.rows.forEach(p => productsMap.set(p.id, p));
-
-      const products = limitedIds.map(id => {
-        const p = productsMap.get(id);
-        return {
-          ...p,
-          rating: typeof p?.rating === 'string' ? JSON.parse(p.rating) : p?.rating
-        };
-      }).filter(Boolean);
+      const products = productsResult.rows.map((p: any) => ({
+        ...p,
+        rating: typeof p.rating === 'string' ? JSON.parse(p.rating) : p.rating
+      }));
 
       return NextResponse.json(products);
     }
@@ -78,28 +87,22 @@ export async function GET(request: Request) {
       return NextResponse.json({ products: [], totalCount });
     }
 
-    const productsResult = await query(
+    const productsResult = await pool.query(
       `SELECT
-        id, img, title, description,
+        id, img, name, description,
         base_price as "basePrice",
         discount_percent as "discountPercent",
         jsonb_build_object('rate', rating_rate, 'count', rating_count) as rating,
         tags, weight, quantity
       FROM products
-      WHERE id = ANY($1::int[])`,
+      WHERE id = ANY($1::bigint[])`,
       [paginatedIds]
     );
 
-    const productsMap = new Map();
-    productsResult.rows.forEach(p => productsMap.set(p.id, p));
-
-    const products = paginatedIds.map(id => {
-      const p = productsMap.get(id);
-      return {
-        ...p,
-        rating: typeof p?.rating === 'string' ? JSON.parse(p.rating) : p?.rating
-      };
-    }).filter(Boolean);
+    const products = productsResult.rows.map((p: any) => ({
+      ...p,
+      rating: typeof p.rating === 'string' ? JSON.parse(p.rating) : p.rating
+    }));
 
     return NextResponse.json({ products, totalCount });
   } catch (error) {

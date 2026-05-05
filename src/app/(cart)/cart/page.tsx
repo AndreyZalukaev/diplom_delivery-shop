@@ -29,7 +29,6 @@ const CartPage = () => {
   const [isCartLoading, setIsCartLoading] = useState(true);
   const [useBonuses, setUseBonuses] = useState<boolean>(false);
   const [isCheckout, setIsCheckout] = useState<boolean>(false);
-  const [isOrdered, setIsOrdered] = useState<boolean>(false);
   const [title, setTitle] = useState<string>("Корзина");
   const [deliveryData, setDeliveryData] = useState<{
     address: DeliveryAddress;
@@ -37,7 +36,7 @@ const CartPage = () => {
     isValid: boolean;
   } | null>(null);
 
-  const { cartItems, updateCart } = useCart();
+  const { cartItems, updateCart, isOrdered, setIsOrdered } = useCart();
   const visibleCartItems = cartItems.filter(
     (item) => !removedItems.includes(item.productId)
   );
@@ -64,6 +63,13 @@ const CartPage = () => {
     isMinimumReached,
   } = pricingData;
 
+  const handleSetCheckout = (value: boolean) => {
+    if (value && isOrdered) {
+      setIsOrdered(false);
+    }
+    setIsCheckout(value);
+  };
+
   const commonSidebarProps = {
     bonusesCount,
     useBonuses,
@@ -76,7 +82,7 @@ const CartPage = () => {
     totalBonuses,
     isMinimumReached,
     isCheckout,
-    onCheckout: setIsCheckout,
+    onCheckout: handleSetCheckout,
     deliveryData,
     productsData,
     setIsOrdered,

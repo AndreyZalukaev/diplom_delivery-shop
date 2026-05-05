@@ -11,7 +11,6 @@ export async function GET(request: Request) {
     let page = parseInt(url.searchParams.get("page") || "1");
     let limit = parseInt(url.searchParams.get("limit") || "8");
 
-    // Валидация page и limit
     if (isNaN(page) || page < 1) page = 1;
     if (isNaN(limit) || limit < 1) limit = 8;
     if (limit > 100) limit = 100;
@@ -25,7 +24,7 @@ export async function GET(request: Request) {
       );
     }
 
-    // Случайные товары (для главной)
+    // Товары для главной (без рандома — ORDER BY id)
     if (randomLimit) {
       const rLimit = parseInt(randomLimit);
       const result = await query(
@@ -37,14 +36,13 @@ export async function GET(request: Request) {
           tags, weight, quantity
         FROM products
         WHERE $1 = ANY(tags) AND quantity > 0
-        ORDER BY RANDOM()
+        ORDER BY id
         LIMIT $2`,
         [tag, rLimit]
       );
       return NextResponse.json(result.rows);
     }
 
-    // Подсчет общего количества
     const countResult = await query(
       `SELECT COUNT(*) as total FROM products
        WHERE $1 = ANY(tags) AND quantity > 0`,
@@ -52,7 +50,6 @@ export async function GET(request: Request) {
     );
     const totalCount = parseInt(countResult.rows[0].total);
 
-    // Пагинированный список
     const productsResult = await query(
       `SELECT
         id, img, name, description,

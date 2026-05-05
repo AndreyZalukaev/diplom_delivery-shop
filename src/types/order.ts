@@ -19,3 +19,9 @@ export interface CartItemWithPrice {
   discountPercent?: number;
   hasLoyaltyDiscount?: boolean;
 }
+
+export type PaymentMethod = "cash_on_delivery" | "online";
+
+export type OrderStatus = "pending" | "confirmed" | "delivered" | "cancelled";
+
+export type PaymentStatus = "pending" | "waiting" | "paid";

@@ -2,10 +2,13 @@ const fetchPurchases = async (
   options?: {
     userPurchasesLimit?: number;
     pagination?: { startIdx: number; perPage: number };
+    userId?: string;
   }
 ) => {
   try {
-    const url = new URL(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/users/purchases`);
+    const url = new URL(
+      `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/users/purchases`
+    );
 
     if (options?.userPurchasesLimit) {
       url.searchParams.append("userPurchasesLimit", options.userPurchasesLimit.toString());
@@ -15,6 +18,10 @@ const fetchPurchases = async (
         options.pagination.startIdx.toString()
       );
       url.searchParams.append("perPage", options.pagination.perPage.toString());
+    }
+
+    if (options?.userId) {
+      url.searchParams.append("userId", options.userId);
     }
 
     const res = await fetch(url.toString(), { next: { revalidate: 3600 } });

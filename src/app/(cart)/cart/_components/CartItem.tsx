@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, memo } from "react";
+import { useState, memo, useEffect } from "react";
 import Link from "next/link";
 import { CONFIG } from "@/config/config";
 import {
@@ -26,10 +26,23 @@ const CartItem = memo(function CartItem({
   onRemove,
   hasLoyaltyCard,
 }: CartItemProps) {
-    // Убрал из state quantity альтернативу в виде || 1
   const [quantity, setQuantity] = useState(item.quantity);
   const [isUpdating, setIsUpdating] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
+
+  // Синхронизация количества с БД при изменении доступного количества
+  useEffect(() => {
+    if (!productData) return;
+
+    const available = productData.quantity;
+    const currentQty = item.quantity;
+
+    if (currentQty > available) {
+      const newQty = available;
+      setQuantity(newQty);
+      onQuantityUpdate(item.productId, newQty);
+    }
+  }, [productData?.quantity]);
 
   const handleQuantityChange = async (newQuantity: number) => {
     if (newQuantity < 0) return;
@@ -82,7 +95,7 @@ const CartItem = memo(function CartItem({
         ${isOutOfStock ? "opacity-60" : ""}
       `}
     >
-        <SelectionCheckbox
+      <SelectionCheckbox
         isSelected={isSelected}
         onSelectionChange={(checked) =>
           onSelectionChange(item.productId, checked)
@@ -114,30 +127,17 @@ const CartItem = memo(function CartItem({
               {hasDiscount && (
                 <DiscountBadge discountPercent={productData.discountPercent} />
               )}
-                  <button
-        onClick={() => onRemove(item.productId)}
-        className="absolute bottom-2 right-2 w-6 h-6 bg-[#f3f2f1] hover:bg-[#fcd5ba] rounded flex items-center justify-center duration-300 z-10 cursor-pointer hover:scale-110"
-        title="Удалить из корзины"
-      >
-        ×
-      </button>
-    </div>
-                <button
-        onClick={() => onRemove(item.productId)}
-        className="absolute bottom-2 right-2 w-6 h-6 bg-[#f3f2f1] hover:bg-[#fcd5ba] rounded flex items-center justify-center duration-300 z-10 cursor-pointer hover:scale-110"
-        title="Удалить из корзины"
-      >
-        ×
-      </button>
-    </div>
-              <button
-        onClick={() => onRemove(item.productId)}
-        className="absolute bottom-2 right-2 w-6 h-6 bg-[#f3f2f1] hover:bg-[#fcd5ba] rounded flex items-center justify-center duration-300 z-10 cursor-pointer hover:scale-110"
-        title="Удалить из корзины"
-      >
-        ×
-      </button>
-    </div>
+            </div>
+
+            <button
+              onClick={() => onRemove(item.productId)}
+              className="absolute bottom-2 right-2 w-6 h-6 bg-[#f3f2f1] hover:bg-[#fcd5ba] rounded flex items-center justify-center duration-300 z-10 cursor-pointer hover:scale-110"
+              title="Удалить из корзины"
+            >
+              ×
+            </button>
+          </div>
+        </div>
 
         {showTooltip && <Tooltip text="Количество ограничено" position="top" />}
         <div className="flex flex-wrap justify-between items-center gap-2 w-full md:w-30 xl:w-[236px] p-2 md:flex-nowrap md:flex-col md:justify-normal md:items-end xl:flex-row xl:items-start xl:justify-end">
@@ -169,48 +169,13 @@ const CartItem = memo(function CartItem({
                     <p className="font-normal text-xs text-[#ff6633]">
                       {formatPrice(totalFinalPrice - totalPriceWithoutCard)} ₽
                     </p>
-                        <button
-        onClick={() => onRemove(item.productId)}
-        className="absolute bottom-2 right-2 w-6 h-6 bg-[#f3f2f1] hover:bg-[#fcd5ba] rounded flex items-center justify-center duration-300 z-10 cursor-pointer hover:scale-110"
-        title="Удалить из корзины"
-      >
-        ×
-      </button>
-    </div>
+                  </div>
                 )}
               </>
             )}
-                <button
-        onClick={() => onRemove(item.productId)}
-        className="absolute bottom-2 right-2 w-6 h-6 bg-[#f3f2f1] hover:bg-[#fcd5ba] rounded flex items-center justify-center duration-300 z-10 cursor-pointer hover:scale-110"
-        title="Удалить из корзины"
-      >
-        ×
-      </button>
-    </div>
-              <button
-        onClick={() => onRemove(item.productId)}
-        className="absolute bottom-2 right-2 w-6 h-6 bg-[#f3f2f1] hover:bg-[#fcd5ba] rounded flex items-center justify-center duration-300 z-10 cursor-pointer hover:scale-110"
-        title="Удалить из корзины"
-      >
-        ×
-      </button>
-    </div>
-            <button
-        onClick={() => onRemove(item.productId)}
-        className="absolute bottom-2 right-2 w-6 h-6 bg-[#f3f2f1] hover:bg-[#fcd5ba] rounded flex items-center justify-center duration-300 z-10 cursor-pointer hover:scale-110"
-        title="Удалить из корзины"
-      >
-        ×
-      </button>
-    </div>
-          <button
-        onClick={() => onRemove(item.productId)}
-        className="absolute bottom-2 right-2 w-6 h-6 bg-[#f3f2f1] hover:bg-[#fcd5ba] rounded flex items-center justify-center duration-300 z-10 cursor-pointer hover:scale-110"
-        title="Удалить из корзины"
-      >
-        ×
-      </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 });

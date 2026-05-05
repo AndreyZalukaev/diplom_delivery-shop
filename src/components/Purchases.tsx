@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import fetchPurchases from "../app/purchases/fetchPurchases";
+import fetchPurchases from "@/app/purchases/fetchPurchases";
 import ProductsSection from "./ProductsSection";
 import ErrorComponent from "./ErrorComponent";
 import { ProductCardProps } from "@/types/product";
 import Loader from "./Loader";
+import { CONFIG } from "@/config/config";
 
 const Purchases = () => {
   const [shouldShow, setShouldShow] = useState(false);
@@ -16,25 +17,27 @@ const Purchases = () => {
   useEffect(() => {
     const checkAccessAndFetchData = async () => {
       try {
-        // Проверяем авторизацию и роль
         const userStr = localStorage.getItem("user");
         let hasAccess = false;
-        
+        let userId: string | null = null;
+
         if (userStr) {
           try {
             const user = JSON.parse(userStr);
             const role = user.role || "user";
             hasAccess = role === "user";
+            userId = user.id ? String(user.id) : null;
           } catch {
             hasAccess = false;
           }
         }
-        
+
         setShouldShow(hasAccess);
 
-        if (hasAccess) {
+        if (hasAccess && userId) {
           const result = await fetchPurchases({
-            userPurchasesLimit: 10, // CONFIG.ITEMS_PER_PAGE_MAIN_PRODUCTS
+            userPurchasesLimit: CONFIG.ITEMS_PER_PAGE_MAIN_PRODUCTS,
+            userId,
           });
           setItems(result.items);
         }
@@ -49,7 +52,6 @@ const Purchases = () => {
   }, []);
 
   if (!shouldShow) return null;
-
   if (loading) return <Loader />;
 
   if (error) {

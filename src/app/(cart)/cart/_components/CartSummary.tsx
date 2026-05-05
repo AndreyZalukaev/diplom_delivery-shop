@@ -1,21 +1,23 @@
 "use client";
 
-import { buttonStyles } from "@/app/(auth)/styles";
-import { formatPrice } from "@/utils/formatPrice";
-import Bonuses from "@/app/product/[id]/_components/Bonuses";
 import { CartSummaryProps } from "@/types/cart";
 import { useCart } from "@/contexts/CartContext";
-import { getFullEnding } from "@/utils/getWordEnding";
 import { CONFIG } from "@/config/config";
 import { useState } from "react";
-import { CartItemWithPrice } from "@/types/order";
+import PriceSummary from "./PriceSummary";
+import MinimumOrderWarning from "./MinimumOrderWarning";
+import CheckoutButton from "./CheckoutButton";
+import PaymentButtons from "./PaymentButtons";
+import { FakePaymentData, PaymentSuccessData } from "@/types/payment";
 import {
-  calculateFinalPrice,
-  calculatePriceByCard,
-} from "@/utils/calcPrices";
-import { createOrderAction } from "@/actions/orderDelivery";
-import OrderSuccessMessage from "./OrderSuccessMessage";
-import { ProductCardProps } from "@/types/product";
+  confirmOrderPayment,
+  createOrderRequest,
+  prepareCartItemsWithPrices,
+} from "../utils/orderHelpers";
+import { updateUserAfterPaymentAction } from "@/actions/updateUserAfterPaymentAction";
+import FakePaymentModal from "@/app/(payment)/FakePaymentModal";
+import PaymentSuccessModal from "@/app/(payment)/PaymentSuccessModal";
+import { useRouter } from "next/navigation";
 
 const CartSummary = ({
   visibleCartItems,
@@ -34,187 +36,230 @@ const CartSummary = ({
 }: CartSummaryProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
-  const { clearCart } = useCart();
-  const [isOrdered, setIsOrderedLocal] = useState(false);
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
+  const [paymentType, setPaymentType] = useState<
+    "cash_on_delivery" | "online" | null
+  >(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successData, setSuccessData] = useState<PaymentSuccessData | null>(
+    null
+  );
+  const router = useRouter();
 
-  const handleSetOrdered = (value: boolean) => {
-    setIsOrderedLocal(value);
-    if (setIsOrdered) setIsOrdered(value);
+  const {
+    hasLoyaltyCard,
+    isOrdered,
+    setIsOrdered: setContextIsOrdered,
+    resetAfterOrder,
+    clearCart,
+  } = useCart();
+
+  const usedBonuses = Math.min(
+    Math.floor((totalPrice * CONFIG.MAX_BONUSES_PERCENT) / 100),
+    totalBonuses
+  );
+
+  const actualUsedBonuses = useBonuses ? usedBonuses : 0;
+
+  const createOrder = async (
+    paymentMethod: "cash_on_delivery" | "online",
+    paymentId?: string
+  ) => {
+    if (!deliveryData) {
+      throw new Error("Данные доставки не заполнены");
+    }
+
+    const cartItemsWithPrices = prepareCartItemsWithPrices(
+      visibleCartItems,
+      productsData,
+      hasLoyaltyCard
+    );
+
+    const orderData = {
+      finalPrice,
+      totalBonuses,
+      usedBonuses: actualUsedBonuses,
+      totalDiscount,
+      deliveryAddress: deliveryData.address,
+      deliveryTime: deliveryData.time,
+      cartItems: cartItemsWithPrices,
+      totalPrice: totalMaxPrice,
+      paymentMethod,
+      paymentId,
+    };
+
+    return await createOrderRequest(orderData);
   };
 
-  const handleCashPayment = async () => {
-    if (!deliveryData) return;
+  const handlePaymentResult = async (
+    paymentMethod: "cash_on_delivery" | "online",
+    paymentData?: FakePaymentData
+  ) => {
+    if (!deliveryData) {
+      console.error("Данные доставки не заполнены");
+      return;
+    }
 
     setIsProcessing(true);
+    setPaymentType(paymentMethod === "online" ? "online" : "cash_on_delivery");
 
     try {
-      const cartItemsWithPrices: CartItemWithPrice[] = visibleCartItems.map(
-        (item) => {
-          const product = (productsData as { [key: string]: ProductCardProps })[item.productId];
-
-          if (!product) {
-            return {
-              productId: item.productId,
-              quantity: item.quantity,
-              price: 0,
-            };
-          }
-
-          const priceWithDiscount = calculateFinalPrice(
-            product.basePrice,
-            product.discountPercent || 0
-          );
-
-          const finalPrice = CONFIG.CARD_DISCOUNT_PERCENT > 0
-            ? calculatePriceByCard(
-                priceWithDiscount,
-                CONFIG.CARD_DISCOUNT_PERCENT
-              )
-            : priceWithDiscount;
-
-          return {
-            productId: item.productId,
-            quantity: item.quantity,
-            price: finalPrice,
-            basePrice: product.basePrice,
-            discountPercent: product.discountPercent || 0,
-            hasLoyaltyDiscount: CONFIG.CARD_DISCOUNT_PERCENT > 0,
-          };
+      if (paymentMethod === "online") {
+        if (paymentData?.status === "succeeded") {
+          await confirmOrderPayment(currentOrderId!);
+          await updateUserAfterPaymentAction({
+            usedBonuses: actualUsedBonuses,
+            earnedBonuses: totalBonuses,
+            purchasedProductIds: visibleCartItems.map((item) => item.productId),
+          });
         }
-      );
 
-      const result = await createOrderAction({
-        finalPrice,
-        totalBonuses,
-        usedBonuses: Math.min(
-          Math.floor((totalPrice * CONFIG.MAX_BONUSES_PERCENT) / 100),
-          totalBonuses
-        ),
-        totalDiscount,
-        deliveryAddress: deliveryData.address,
-        deliveryTime: deliveryData.time,
-        cartItems: cartItemsWithPrices,
-        totalPrice: totalMaxPrice,
-        paymentMethod: "cash_on_delivery",
-      });
+        const successModalData: PaymentSuccessData = {
+          orderNumber: orderNumber!,
+          paymentId: paymentData!.id,
+          amount: finalPrice,
+          cardLast4: paymentData!.cardLast4,
+        };
 
-      setOrderNumber(result.orderNumber);
-      handleSetOrdered(true);
-    } catch (error: unknown) {
-      console.error("Ошибка при создании заказа:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Произошла неизвестная ошибка";
-      alert(`Ошибка при оформлении заказа: ${errorMessage}`);
+        setSuccessData(successModalData);
+        setShowSuccessModal(true);
+      } else {
+        const result = await createOrder(paymentMethod, paymentData?.id);
+        setOrderNumber(result.orderNumber);
+      }
+
+      setContextIsOrdered(true);
+      if (setIsOrdered) setIsOrdered(true);
+    } catch (error) {
+      console.error("Ошибка:", error);
+      alert("Ошибка при обработке заказа");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleOnlinePayment = () => {
-    console.log("Оплата на сайте");
+  const handleCashPayment = async () => {
+    await handlePaymentResult("cash_on_delivery");
+  };
+
+  const handleOnlinePayment = async () => {
+    if (!deliveryData) {
+      console.error("Данные доставки не заполнены");
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      if (currentOrderId && orderNumber) {
+        setShowPaymentModal(true);
+      } else {
+        const result = await createOrder("online");
+        setOrderNumber(result.orderNumber);
+        setCurrentOrderId(String(result.order.id));
+        setShowPaymentModal(true);
+      }
+    } catch (error) {
+      console.error("Ошибка при создании заказа:", error);
+      alert("Ошибка при создании заказа");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleClosePaymentModal = () => {
+    setShowPaymentModal(false);
+  };
+
+  const handlePaymentSuccess = async (paymentData: FakePaymentData) => {
+    try {
+      await handlePaymentResult("online", paymentData);
+    } catch (error) {
+      console.error("Ошибка обработки заказа:", error);
+    }
+  };
+
+  const handlePaymentError = (error: string) => {
+    setShowPaymentModal(false);
+    alert(`Ошибка оплаты: ${error}`);
+  };
+
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    resetAfterOrder();
+    clearCart();
+    router.push("/");
   };
 
   const isFormValid = (): boolean => {
     if (!deliveryData) return false;
+
     const { address, time } = deliveryData;
+
     const isAddressValid = Boolean(
       address.city?.trim() && address.street?.trim() && address.house?.trim()
     );
+
     const isTimeValid = Boolean(time.date?.trim() && time.timeSlot?.trim());
-    return isAddressValid && isTimeValid && isMinimumReached && visibleCartItems.length > 0;
+
+    return (
+      isAddressValid &&
+      isTimeValid &&
+      isMinimumReached &&
+      visibleCartItems.length > 0
+    );
   };
 
   const canProceedWithPayment = (): boolean => {
     return isFormValid() && !isProcessing;
   };
 
-  const activeButton = `${buttonStyles.active} p-3 rounded mx-auto w-full text-2xl cursor-pointer`;
-  const inactiveButton = `${buttonStyles.inactive} p-3 rounded mx-auto w-full text-2xl`;
-
   return (
     <>
-      <div className="flex flex-col gap-y-2.5 pb-6 border-b-2 border-[#f3f2f1]">
-        <div className="flex flex-row justify-between">
-          <p className="text-[#8f8f8f]">
-            {visibleCartItems.length} {`товар${getFullEnding(visibleCartItems.length)}`}
-          </p>
-          <p className="">{formatPrice(totalMaxPrice)} ₽</p>
-        </div>
+      <PriceSummary
+        visibleCartItems={visibleCartItems}
+        totalMaxPrice={totalMaxPrice}
+        totalDiscount={totalDiscount}
+        finalPrice={finalPrice}
+        totalBonuses={totalBonuses}
+      />
 
-        <div className="flex flex-row justify-between">
-          <p className="text-[#8f8f8f]">Скидка</p>
-          <p className="text-[#ff6633] font-bold">
-            -{formatPrice(totalDiscount)} ₽
-          </p>
-        </div>
+      <div className="w-full">
+        <MinimumOrderWarning isMinimumReached={isMinimumReached} />
+        {!isCheckout ? (
+          <CheckoutButton
+            isCheckout={isCheckout}
+            isMinimumReached={isMinimumReached}
+            visibleCartItemsCount={visibleCartItems.length}
+            onCheckout={() => onCheckout?.(true)}
+          />
+        ) : (
+          <PaymentButtons
+            isOrdered={isOrdered}
+            paymentType={paymentType}
+            orderNumber={orderNumber}
+            isProcessing={isProcessing}
+            canProceedWithPayment={canProceedWithPayment()}
+            onOnlinePayment={handleOnlinePayment}
+            onCashPayment={handleCashPayment}
+          />
+        )}
       </div>
 
-      <div className="flex flex-col items-end justify-between gap-y-6">
-        <div className="text-base text-[#8f8f8f] flex flex-row justify-between items-center w-full">
-          <span>Итог:</span>
-          <span className="font-bold text-2xl text-main-text">
-            {formatPrice(finalPrice)} ₽
-          </span>
-        </div>
-        <Bonuses bonus={totalBonuses} />
-        <div className="w-full">
-          {!isMinimumReached && (
-            <div className="bg-[#d80000] rounded text-white text-xs text-center mx-auto py-0.75 px-1.5 mb-4 w-full">
-              Минимальная сумма заказа 1000р
-            </div>
-          )}
-          {!isCheckout ? (
-            <button
-              onClick={() => onCheckout?.(true)}
-              disabled={!isMinimumReached || visibleCartItems.length === 0}
-              className={
-                isMinimumReached && visibleCartItems.length > 0
-                  ? activeButton
-                  : inactiveButton
-              }
-            >
-              Оформить заказ
-            </button>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {!isOrdered ? (
-                <>
-                  <button
-                    disabled={!canProceedWithPayment()}
-                    onClick={handleOnlinePayment}
-                    className={
-                      canProceedWithPayment()
-                        ? activeButton
-                        : inactiveButton
-                    }
-                  >
-                    {isProcessing ? "Обработка..." : "Оплатить на сайте"}
-                  </button>
+      <FakePaymentModal
+        amount={finalPrice}
+        isOpen={showPaymentModal}
+        onClose={handleClosePaymentModal}
+        onSuccess={handlePaymentSuccess}
+        onError={handlePaymentError}
+      />
 
-                  <button
-                    disabled={!canProceedWithPayment()}
-                    onClick={handleCashPayment}
-                    className={`h-10 rounded w-full text-base items-center justify-center duration-300 ${
-                      canProceedWithPayment()
-                        ? "bg-[#ff6633] hover:shadow-[0_4px_12px_rgba(255,102,51,0.3)] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)] text-white cursor-pointer"
-                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    }`}
-                  >
-                    {isProcessing ? "Оформление..." : "Оплатить при получении"}
-                  </button>
-                </>
-              ) : (
-                <OrderSuccessMessage
-                  orderNumber={orderNumber}
-                  useBonuses={useBonuses}
-                  totalBonuses={totalBonuses}
-                  totalPrice={totalPrice}
-                />
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+      <PaymentSuccessModal
+        isOpen={showSuccessModal}
+        onClose={handleCloseSuccessModal}
+        successData={successData}
+      />
     </>
   );
 };
