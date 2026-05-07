@@ -12,5 +12,8 @@ export interface ProductCardProps {
   tags: string[];
   weight?: string;
   quantity: number;
+  orderQuantity?: number;
+  isLowStock?: boolean;
+  insufficientStock?: boolean;
   onRemoveFromFavorites?: () => void;
 }

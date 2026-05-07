@@ -14,9 +14,12 @@ const TopMenu = () => {
   const isCatalogPage = pathname === "/catalog";
   const isFavoritesPage = pathname === "/favorites";
   const isCartPage = pathname === "/cart";
+  const isUserOrdersPage = pathname === "/user-orders";
   const [userRole, setUserRole] = useState<string>("user");
 
   const { totalItems, fetchCart } = useCart();
+
+  const isManagerOrAdmin = userRole === "admin" || userRole === "manager";
 
   useEffect(() => {
     const loadUserRole = () => {
@@ -48,17 +51,11 @@ const TopMenu = () => {
     };
   }, []);
 
-  const isManagerOrAdmin = userRole === "admin" || userRole === "manager";
-
   useEffect(() => {
-    if (userRole !== "admin" && userRole !== "manager" && userRole !== "user") {
-      return;
-    }
-    const isPrivileged = userRole === "admin" || userRole === "manager";
-    if (!isPrivileged) {
+    if (!isManagerOrAdmin) {
       fetchCart();
     }
-  }, [userRole, fetchCart]);
+  }, [userRole, fetchCart, isManagerOrAdmin]);
 
   return (
     <ul className="flex flex-row gap-x-6 items-end">
@@ -72,40 +69,44 @@ const TopMenu = () => {
       </Link>
 
       {!isManagerOrAdmin && (
-        <Link href="/favorites">
-          <li className="flex flex-col items-center gap-2.5 w-11 cursor-pointer">
-            <IconHeart isActive={isFavoritesPage} variant="orange" />
-            <span className={isFavoritesPage ? "text-[#ff6633]" : "text-[#414141]"}>
-              Избранное
-            </span>
-          </li>
-        </Link>
-      )}
-
-      <li className="flex flex-col items-center gap-2.5 w-11 cursor-pointer">
-        <IconBox />
-        <span className={isManagerOrAdmin ? "text-[#ff6633]" : ""}>Заказы</span>
-      </li>
-
-      {!isManagerOrAdmin && (
-        <li className="relative flex flex-col items-center gap-2.5 w-11 cursor-pointer">
-          <Link
-            href="/cart"
-            className="flex flex-col items-center gap-2.5 w-11 cursor-pointer"
-          >
-            <IconCart isActive={isCartPage} />
-
-            {totalItems > 0 && (
-              <span className="absolute -top-2 right-0 bg-[#ff6633] text-white text-[9px] rounded w-4 h-4 flex items-center justify-center py-0.5 px-1">
-                {totalItems > 99 ? '99+' : totalItems}
+        <>
+          <Link href="/favorites">
+            <li className="flex flex-col items-center gap-2.5 w-11 cursor-pointer">
+              <IconHeart isActive={isFavoritesPage} variant="orange" />
+              <span className={isFavoritesPage ? "text-[#ff6633]" : "text-[#414141]"}>
+                Избранное
               </span>
-            )}
-
-            <span className={isCartPage ? "text-[#ff6633]" : ""}>
-              Корзина
-            </span>
+            </li>
           </Link>
-        </li>
+
+          <Link href="/user-orders">
+            <li className="flex flex-col items-center gap-2.5 w-11 cursor-pointer">
+              <IconBox isActive={isUserOrdersPage} />
+              <span className={isUserOrdersPage ? "text-[#ff6633]" : "text-[#414141]"}>
+                Заказы
+              </span>
+            </li>
+          </Link>
+
+          <li className="relative flex flex-col items-center gap-2.5 w-11 cursor-pointer">
+            <Link
+              href="/cart"
+              className="flex flex-col items-center gap-2.5 w-11 cursor-pointer"
+            >
+              <IconCart isActive={isCartPage} />
+
+              {totalItems > 0 && (
+                <span className="absolute -top-2 right-0 bg-[#ff6633] text-white text-[9px] rounded w-4 h-4 flex items-center justify-center py-0.5 px-1">
+                  {totalItems > 99 ? '99+' : totalItems}
+                </span>
+              )}
+
+              <span className={isCartPage ? "text-[#ff6633]" : ""}>
+                Корзина
+              </span>
+            </Link>
+          </li>
+        </>
       )}
     </ul>
   );

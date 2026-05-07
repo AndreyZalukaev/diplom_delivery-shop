@@ -1,42 +1,36 @@
 import { NextResponse } from "next/server";
-import pool from "@/lib/pg";
-import { Schedule } from "@/types/deliverySchedule";
+
+// Дефолтные слоты — всегда доступны
+const DEFAULT_SLOTS: Record<string, boolean> = {
+  "08:00-14:00": true,
+  "14:00-18:00": true,
+  "18:00-22:00": true,
+};
+
+const getThreeDays = () => {
+  const dates: string[] = [];
+  const today = new Date();
+  const localToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  for (let i = 0; i < 3; i++) {
+    const date = new Date(localToday);
+    date.setDate(localToday.getDate() + i);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    dates.push(`${year}-${month}-${day}`);
+  }
+
+  return dates;
+};
 
 export async function GET() {
-  try {
-    const result = await pool.query(
-      "SELECT schedule FROM delivery_slots LIMIT 1"
-    );
-    const schedule = result.rows[0]?.schedule || {};
+  const dates = getThreeDays();
+  const schedule: Record<string, Record<string, boolean>> = {};
 
-    return NextResponse.json({ schedule });
-  } catch {
-    return NextResponse.json(
-      { message: "Ошибка при загрузке графика доставки" },
-      { status: 500 }
-    );
-  }
-}
+  dates.forEach((date) => {
+    schedule[date] = { ...DEFAULT_SLOTS };
+  });
 
-export async function POST(request: Request) {
-  try {
-    const { schedule } = (await request.json()) as { schedule: Schedule };
-
-    await pool.query(
-      `UPDATE delivery_slots 
-       SET schedule = $1, updated_at = NOW() 
-       WHERE id = (SELECT id FROM delivery_slots LIMIT 1)`,
-      [JSON.stringify(schedule || {})]
-    );
-
-    return NextResponse.json({
-      success: true,
-      message: "График доставки сохранен",
-    });
-  } catch {
-    return NextResponse.json(
-      { message: "Ошибка при сохранении графика доставки" },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({ schedule });
 }

@@ -75,3 +75,22 @@ export interface CartSidebarProps extends CartBaseProps, BonusesSectionProps {
   productsData?: { [key: string]: ProductCardProps };
   setIsOrdered?: (value: boolean) => void;
 }
+
+export interface CustomCartItem {
+  productId: string;
+  quantity: number;
+  price: number;
+  discountPercent: number;
+  hasLoyaltyDiscount: boolean;
+  addedAt: Date;
+}
+
+export interface CustomPricing {
+  totalPrice: number;
+  totalMaxPrice: number;
+  totalDiscount: number;
+  finalPrice: number;
+  totalBonuses: number;
+  maxBonusUse: number;
+  isMinimumReached: boolean;
+}

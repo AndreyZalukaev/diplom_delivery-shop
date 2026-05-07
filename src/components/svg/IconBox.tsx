@@ -1,44 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-
-const IconBox = () => {
-  const [fillColor, setFillColor] = useState("rgb(65,65,65)");
-
-  useEffect(() => {
-    const loadUserRole = () => {
-      const userStr = localStorage.getItem("user");
-      if (userStr) {
-        try {
-          const user = JSON.parse(userStr);
-          const role = user.role || "user";
-          if (role === "admin" || role === "manager") {
-            setFillColor("rgb(255, 102, 51)");
-          } else {
-            setFillColor("rgb(65,65,65)");
-          }
-        } catch {
-          setFillColor("rgb(65,65,65)");
-        }
-      } else {
-        setFillColor("rgb(65,65,65)");
-      }
-    };
-
-    loadUserRole();
-
-    const handleStorageChange = () => {
-      loadUserRole();
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("user-login", handleStorageChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("user-login", handleStorageChange);
-    };
-  }, []);
+const IconBox = ({ isActive = false }: { isActive?: boolean }) => {
+  const fillColor = isActive ? "rgb(255, 102, 51)" : "rgb(65,65,65)";
 
   return (
     <svg

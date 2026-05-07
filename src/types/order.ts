@@ -22,6 +22,66 @@ export interface CartItemWithPrice {
 
 export type PaymentMethod = "cash_on_delivery" | "online";
 
-export type OrderStatus = "pending" | "confirmed" | "delivered" | "cancelled";
+export type OrderStatus = 
+  | "pending" 
+  | "confirmed" 
+  | "collected" 
+  | "delivery" 
+  | "delivered" 
+  | "cancelled" 
+  | "refund" 
+  | "returned" 
+  | "failed";
 
-export type PaymentStatus = "pending" | "waiting" | "paid";
+export type PaymentStatus = "pending" | "waiting" | "paid" | "failed";
+
+export interface IOrderItem {
+  productId: string;
+  quantity: number;
+  price: number;
+  discountPercent?: number;
+  hasLoyaltyDiscount?: boolean;
+}
+
+export interface IOrder {
+  id: number;
+  userId: number;
+  orderNumber: string;
+  status: OrderStatus;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  totalAmount: number;
+  discountAmount: number;
+  usedBonuses: number;
+  earnedBonuses: number;
+  deliveryAddress: DeliveryAddress;
+  deliveryDate: string;
+  deliveryTimeSlot: string;
+  surname: string;
+  name: string;
+  phone: string;
+  gender: string;
+  birthday: string;
+  items: IOrderItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateOrderRequest {
+  finalPrice: number;
+  totalBonuses: number;
+  usedBonuses: number;
+  totalDiscount: number;
+  deliveryAddress: DeliveryAddress;
+  deliveryTime: DeliveryTime;
+  cartItems: CartItemWithPrice[];
+  totalPrice: number;
+  paymentMethod: "cash_on_delivery" | "online";
+  paymentId?: string;
+}
+
+export interface UpdateUserAfterPaymentData {
+  usedBonuses: number;
+  earnedBonuses: number;
+  purchasedProductIds: string[];
+}

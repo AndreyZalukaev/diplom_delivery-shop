@@ -18,6 +18,15 @@ import { updateUserAfterPaymentAction } from "@/actions/updateUserAfterPaymentAc
 import FakePaymentModal from "@/app/(payment)/FakePaymentModal";
 import PaymentSuccessModal from "@/app/(payment)/PaymentSuccessModal";
 import { useRouter } from "next/navigation";
+import { CustomCartItem, CustomPricing } from "@/types/cart";
+import { ProductCardProps } from "@/types/product";
+
+interface ExtendedCartSummaryProps extends CartSummaryProps {
+  isRepeatOrder?: boolean;
+  customCartItems?: CustomCartItem[];
+  customPricing?: CustomPricing;
+  onOrderSuccess?: () => void;
+}
 
 const CartSummary = ({
   visibleCartItems,
@@ -33,7 +42,11 @@ const CartSummary = ({
   useBonuses = false,
   totalPrice = 0,
   setIsOrdered,
-}: CartSummaryProps) => {
+  isRepeatOrder = false,
+  customCartItems,
+  customPricing,
+  onOrderSuccess,
+}: ExtendedCartSummaryProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
@@ -42,9 +55,7 @@ const CartSummary = ({
   >(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successData, setSuccessData] = useState<PaymentSuccessData | null>(
-    null
-  );
+  const [successData, setSuccessData] = useState<PaymentSuccessData | null>(null);
   const router = useRouter();
 
   const {
@@ -55,9 +66,30 @@ const CartSummary = ({
     clearCart,
   } = useCart();
 
+  // Для повторного заказа: получаем hasLoyaltyCard из localStorage
+  const getRepeatOrderLoyaltyCard = (): boolean => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        return user.has_card || !!user.loyalty_card;
+      } catch {}
+    }
+    return false;
+  };
+
+  const effectiveVisibleItems = isRepeatOrder && customCartItems ? customCartItems : visibleCartItems;
+  const effectiveHasLoyaltyCard = isRepeatOrder ? getRepeatOrderLoyaltyCard() : hasLoyaltyCard;
+
+  const currentTotalMaxPrice = isRepeatOrder && customPricing ? customPricing.totalMaxPrice : totalMaxPrice;
+  const currentTotalDiscount = isRepeatOrder && customPricing ? customPricing.totalDiscount : totalDiscount;
+  const currentFinalPrice = isRepeatOrder && customPricing ? customPricing.finalPrice : finalPrice;
+  const currentTotalBonuses = isRepeatOrder && customPricing ? customPricing.totalBonuses : totalBonuses;
+  const currentIsMinimumReached = isRepeatOrder && customPricing ? customPricing.isMinimumReached : isMinimumReached;
+
   const usedBonuses = Math.min(
     Math.floor((totalPrice * CONFIG.MAX_BONUSES_PERCENT) / 100),
-    totalBonuses
+    currentTotalBonuses
   );
 
   const actualUsedBonuses = useBonuses ? usedBonuses : 0;
@@ -71,20 +103,20 @@ const CartSummary = ({
     }
 
     const cartItemsWithPrices = prepareCartItemsWithPrices(
-      visibleCartItems,
-      productsData,
-      hasLoyaltyCard
+      effectiveVisibleItems,
+      productsData as { [key: string]: ProductCardProps },
+      effectiveHasLoyaltyCard
     );
 
     const orderData = {
-      finalPrice,
-      totalBonuses,
+      finalPrice: currentFinalPrice,
+      totalBonuses: currentTotalBonuses,
       usedBonuses: actualUsedBonuses,
-      totalDiscount,
+      totalDiscount: currentTotalDiscount,
       deliveryAddress: deliveryData.address,
       deliveryTime: deliveryData.time,
       cartItems: cartItemsWithPrices,
-      totalPrice: totalMaxPrice,
+      totalPrice: currentTotalMaxPrice,
       paymentMethod,
       paymentId,
     };
@@ -102,7 +134,7 @@ const CartSummary = ({
     }
 
     setIsProcessing(true);
-    setPaymentType(paymentMethod === "online" ? "online" : "cash_on_delivery");
+    setPaymentType(paymentMethod === "online" ? "online" : "cash");
 
     try {
       if (paymentMethod === "online") {
@@ -110,15 +142,15 @@ const CartSummary = ({
           await confirmOrderPayment(currentOrderId!);
           await updateUserAfterPaymentAction({
             usedBonuses: actualUsedBonuses,
-            earnedBonuses: totalBonuses,
-            purchasedProductIds: visibleCartItems.map((item) => item.productId),
+            earnedBonuses: currentTotalBonuses,
+            purchasedProductIds: effectiveVisibleItems.map((item: any) => item.productId),
           });
         }
 
         const successModalData: PaymentSuccessData = {
           orderNumber: orderNumber!,
           paymentId: paymentData!.id,
-          amount: finalPrice,
+          amount: currentFinalPrice,
           cardLast4: paymentData!.cardLast4,
         };
 
@@ -126,6 +158,8 @@ const CartSummary = ({
         setShowSuccessModal(true);
       } else {
         const result = await createOrder(paymentMethod, paymentData?.id);
+        setOrderNumber(result.orderNumber);
+        setShowSuccessModal(true);
         setOrderNumber(result.orderNumber);
       }
 
@@ -173,6 +207,7 @@ const CartSummary = ({
   };
 
   const handlePaymentSuccess = async (paymentData: FakePaymentData) => {
+    setShowPaymentModal(false);
     try {
       await handlePaymentResult("online", paymentData);
     } catch (error) {
@@ -187,9 +222,14 @@ const CartSummary = ({
 
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
-    resetAfterOrder();
-    clearCart();
-    router.push("/");
+    if (isRepeatOrder && onOrderSuccess) {
+      onOrderSuccess();
+    }
+    if (!isRepeatOrder) {
+      resetAfterOrder();
+      clearCart();
+    }
+    router.push("/user-orders");
   };
 
   const isFormValid = (): boolean => {
@@ -206,8 +246,8 @@ const CartSummary = ({
     return (
       isAddressValid &&
       isTimeValid &&
-      isMinimumReached &&
-      visibleCartItems.length > 0
+      currentIsMinimumReached &&
+      effectiveVisibleItems.length > 0
     );
   };
 
@@ -218,23 +258,16 @@ const CartSummary = ({
   return (
     <>
       <PriceSummary
-        visibleCartItems={visibleCartItems}
-        totalMaxPrice={totalMaxPrice}
-        totalDiscount={totalDiscount}
-        finalPrice={finalPrice}
-        totalBonuses={totalBonuses}
+        visibleCartItems={effectiveVisibleItems}
+        totalMaxPrice={currentTotalMaxPrice}
+        totalDiscount={currentTotalDiscount}
+        finalPrice={currentFinalPrice}
+        totalBonuses={currentTotalBonuses}
       />
 
       <div className="w-full">
-        <MinimumOrderWarning isMinimumReached={isMinimumReached} />
-        {!isCheckout ? (
-          <CheckoutButton
-            isCheckout={isCheckout}
-            isMinimumReached={isMinimumReached}
-            visibleCartItemsCount={visibleCartItems.length}
-            onCheckout={() => onCheckout?.(true)}
-          />
-        ) : (
+        <MinimumOrderWarning isMinimumReached={currentIsMinimumReached} />
+        {isRepeatOrder || isCheckout ? (
           <PaymentButtons
             isOrdered={isOrdered}
             paymentType={paymentType}
@@ -244,11 +277,18 @@ const CartSummary = ({
             onOnlinePayment={handleOnlinePayment}
             onCashPayment={handleCashPayment}
           />
+        ) : (
+          <CheckoutButton
+            isCheckout={isCheckout}
+            isMinimumReached={currentIsMinimumReached}
+            visibleCartItemsCount={effectiveVisibleItems.length}
+            onCheckout={() => onCheckout?.(true)}
+          />
         )}
       </div>
 
       <FakePaymentModal
-        amount={finalPrice}
+        amount={currentFinalPrice}
         isOpen={showPaymentModal}
         onClose={handleClosePaymentModal}
         onSuccess={handlePaymentSuccess}

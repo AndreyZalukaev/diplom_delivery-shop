@@ -11,6 +11,7 @@ interface ProductsSectionProps {
   applyIndexStyles?: boolean;
   loading?: boolean;
   contentType?: "products" | "category";
+  isOrderPage?: boolean;
 }
 
 const ProductsSection = ({
@@ -23,17 +24,20 @@ const ProductsSection = ({
   applyIndexStyles = true,
   loading = false,
   contentType = "products",
+  isOrderPage = false,
 }: ProductsSectionProps) => {
   if (loading) {
-    const skeletonCols = contentType === "category" 
+    const skeletonCols = contentType === "category"
       ? "grid-cols-2 md:grid-cols-3"
       : "grid-cols-2 md:grid-cols-3 xl:grid-cols-4";
-    
+
     return (
       <section style={{ marginBottom: `${marginBottom}px` }}>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">{title}</h2>
-        </div>
+        {title && (
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold">{title}</h2>
+          </div>
+        )}
         <div className={`grid ${skeletonCols} gap-4`}>
           {[...Array(6)].map((_, i) => (
             <div key={i} className="animate-pulse">
@@ -47,16 +51,21 @@ const ProductsSection = ({
     );
   }
 
-  if (!products || products.length === 0) return null;
+  if (!products || products.length === 0) {
+    return (
+      <div className="text-center text-gray-500 py-4">
+        {loading ? "" : "Товары не найдены"}
+      </div>
+    );
+  }
 
   const displayProducts = compact ? products.slice(0, 4) : products;
 
   const getGridClasses = () => {
     if (contentType === "category") {
-      if (applyIndexStyles) {
-        return "grid-cols-2 md:grid-cols-3";
-      }
-      return "grid-cols-2 md:grid-cols-4 xl:grid-cols-5";
+      return applyIndexStyles
+        ? "grid-cols-2 md:grid-cols-3"
+        : "grid-cols-2 md:grid-cols-4 xl:grid-cols-5";
     }
     return applyIndexStyles
       ? "grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
@@ -65,15 +74,17 @@ const ProductsSection = ({
 
   return (
     <section style={{ marginBottom: `${marginBottom}px` }}>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">{title}</h2>
-        {viewAllLink && <ViewAllButton btnText="Смотреть все" href={viewAllLink} />}
-        {viewAllButton && <ViewAllButton btnText={viewAllButton.text} href={viewAllButton.href} />}
-      </div>
+      {title && (
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">{title}</h2>
+          {viewAllLink && <ViewAllButton btnText="Смотреть все" href={viewAllLink} />}
+          {viewAllButton && <ViewAllButton btnText={viewAllButton.text} href={viewAllButton.href} />}
+        </div>
+      )}
       <ul className={`grid gap-4 ${getGridClasses()}`}>
         {displayProducts.map((item) => (
           <li key={item.id}>
-            <ProductCard {...item} />
+            <ProductCard {...item} isOrderPage={isOrderPage} />
           </li>
         ))}
       </ul>
