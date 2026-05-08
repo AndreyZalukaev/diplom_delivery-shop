@@ -31,13 +31,13 @@ export const updateUserAfterPaymentAction = async (data: {
   }
 
   const usedBonusesNum = Number(data.usedBonuses) || 0;
-  const earnedBonusesNum = Number(data.earnedBonuses) || 0;
 
   if (usedBonusesNum > currentBonuses) {
     throw new Error("Недостаточно бонусов");
   }
 
-  const newBonuses = currentBonuses - usedBonusesNum + earnedBonusesNum;
+  // Бонусы НЕ начисляем при оплате — только при доставке
+  const newBonuses = currentBonuses - usedBonusesNum;
 
   const uniqueNewIds = (data.purchasedProductIds || [])
     .map(Number)
@@ -47,7 +47,6 @@ export const updateUserAfterPaymentAction = async (data: {
     ...new Set([...currentPurchases, ...uniqueNewIds]),
   ];
 
-  // Формируем строку для PostgreSQL integer[]: '{1,2,3}'
   const purchasesArray = '{' + updatedPurchases.join(',') + '}';
 
   const updateResult = await pool.query(

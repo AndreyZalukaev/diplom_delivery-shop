@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getServerUserId } from "@/utils/getServerUserId";
+import { getServerUserRole } from "@/utils/getServerUserRole";
 import { getReviewsWord } from "@/utils/reviewsWord";
 import Bonuses from "./_components/Bonuses";
 import CartButton from "./_components/CartButton";
@@ -12,6 +13,7 @@ import SameBrandProducts from "./_components/SameBrandProducts";
 import ReviewsWrapper from "./_components/ReviewsWrapper";
 import StarRating from "@/components/StarRating";
 import FavoriteButton from "@/components/FavoriteButton";
+import AdminProductActions from "./_components/AdminProductActions";
 import pool from "@/lib/pg";
 
 interface ProductPageProps {
@@ -53,6 +55,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   const product = await getProduct(productId);
   const userId = await getServerUserId();
+  const userRole = await getServerUserRole();
 
   if (!product) notFound();
 
@@ -64,6 +67,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const reviewCount = product.rating_count || 0;
   const reviewWord = getReviewsWord(reviewCount);
   const firstCategory = product.tags?.[0] || "";
+
+  const isAdmin = userRole === "admin" || userRole === "manager";
 
   return (
     <div className="container mx-auto px-4 py-6 md:py-8">
@@ -89,7 +94,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
           </div>
           <ProductOffer discountedPrice={discountedPrice} cardPrice={cardPrice} />
           <Bonuses bonus={bonusAmount} />
-          <CartButton productId={String(product.id)} />
+          {isAdmin ? (
+            <AdminProductActions productId={productId} productName={product.name} />
+          ) : (
+            <CartButton productId={String(product.id)} />
+          )}
           <ShareButton title={product.name} className="mt-4" />
           <AdditionalInfo
             brand={product.brand}

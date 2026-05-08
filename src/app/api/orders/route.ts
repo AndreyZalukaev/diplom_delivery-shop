@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     }
 
     const userResult = await pool.query(
-      "SELECT name, phone, gender, birth_date FROM users WHERE id = $1",
+      "SELECT name, phone, gender, birth_date, has_card FROM users WHERE id = $1",
       [userId]
     );
 

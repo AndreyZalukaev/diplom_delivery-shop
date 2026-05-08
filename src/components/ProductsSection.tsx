@@ -12,6 +12,7 @@ interface ProductsSectionProps {
   loading?: boolean;
   contentType?: "products" | "category";
   isOrderPage?: boolean;
+  isAdminOrderPage?: boolean;
 }
 
 const ProductsSection = ({
@@ -25,6 +26,7 @@ const ProductsSection = ({
   loading = false,
   contentType = "products",
   isOrderPage = false,
+  isAdminOrderPage = false,
 }: ProductsSectionProps) => {
   if (loading) {
     const skeletonCols = contentType === "category"
@@ -84,7 +86,7 @@ const ProductsSection = ({
       <ul className={`grid gap-4 ${getGridClasses()}`}>
         {displayProducts.map((item) => (
           <li key={item.id}>
-            <ProductCard {...item} isOrderPage={isOrderPage} />
+            <ProductCard {...item} isOrderPage={isOrderPage} isAdminOrderPage={isAdminOrderPage} />
           </li>
         ))}
       </ul>

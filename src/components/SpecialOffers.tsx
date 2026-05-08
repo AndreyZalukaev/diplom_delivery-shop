@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import bannerCard from "/public/images/banners/banner-card-image.png";
 import bannerActionMobTab from "/public/images/banners/banner-action-mob-tab.jpeg";
 import bannerActionDesk from "/public/images/banners/banner-action-desk.jpeg";
@@ -12,8 +13,11 @@ const SpecialOffers = () => {
             Специальные предложения
           </h2>
           <div className="flex flex-col md:flex-row gap-4 items-center xl:w-auto ">
-             {/* Баннер с картой - всегда видим */}
-            <button className="text-left flex flex-row pt-5 pl-5 rounded bg-[#FCD5BA] w-full max-w-[336px] md:max-w-[352px] xl:max-w-[584px] h-[170px] xl:h-50 hover:shadow-(--shadow-card-shop) duration-300 relative overflow-hidden cursor-pointer">
+            {/* Баннер с картой */}
+            <Link
+              href="/loyalty-card"
+              className="text-left flex flex-row pt-5 pl-5 rounded bg-[#FCD5BA] w-full max-w-[336px] md:max-w-[352px] xl:max-w-[584px] h-[170px] xl:h-50 hover:shadow-(--shadow-card-shop) duration-300 relative overflow-hidden cursor-pointer"
+            >
               <div className="flex flex-col gap-1.5 w-[174px] xl:w-[258px] ">
                 <p className="text-xl xl:text-2xl font-bold">
                   Оформите карту «Северяночка»
@@ -29,9 +33,13 @@ const SpecialOffers = () => {
                 height={110}
                 className="absolute w-auto h-auto -top-3 -right-18.5 xl:-right-4 xl:-top-8 xl:w-[330px] xl:h-auto"
               />
-            </button>
-            <button className="relative w-full md:w-[353px] xl:w-[584px] h-[170px] xl:h-[200px] rounded overflow-hidden cursor-pointer hover:shadow-(--shadow-button-default) duration-300">
-              {/* Баннер акций - мобильная/планшетная версия */}
+            </Link>
+
+            {/* Баннер акций */}
+            <Link
+              href="/actions"
+              className="relative w-full md:w-[353px] xl:w-[584px] h-[170px] xl:h-[200px] rounded overflow-hidden cursor-pointer hover:shadow-(--shadow-button-default) duration-300"
+            >
               <div className="xl:hidden w-full h-full">
                 <Image
                   src={bannerActionMobTab}
@@ -42,8 +50,6 @@ const SpecialOffers = () => {
                   priority
                 />
               </div>
-
-              {/* Баннер акций - десктопная версия */}
               <div className="hidden xl:block w-full h-full">
                 <Image
                   src={bannerActionDesk}
@@ -54,7 +60,7 @@ const SpecialOffers = () => {
                   priority
                 />
               </div>
-            </button>
+            </Link>
           </div>
         </div>
       </div>

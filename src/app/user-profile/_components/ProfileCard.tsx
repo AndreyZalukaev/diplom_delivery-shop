@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import AlertMessage from "./AlertMessage";
 
 interface ProfileCardProps {
@@ -14,9 +15,10 @@ const ProfileCard = ({ user, setUser }: ProfileCardProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const formatDisplayCard = (card: string | null) => {
-    if (!card) return "Не указана";
+    if (!card) return "";
     const last4 = card.slice(-4);
     return `**** **** **** ${last4}`;
   };
@@ -55,21 +57,60 @@ const ProfileCard = ({ user, setUser }: ProfileCardProps) => {
         throw new Error(data.error || "Ошибка сохранения карты");
       }
 
-      // Обновляем данные пользователя в localStorage
       const updatedUser = {
         ...user,
         loyalty_card: cardNumber,
         has_card: true,
       };
       localStorage.setItem("user", JSON.stringify(updatedUser));
+      document.cookie = `user=${encodeURIComponent(JSON.stringify(updatedUser))}; path=/; max-age=86400`;
       setUser(updatedUser);
       window.dispatchEvent(new Event("user-login"));
 
-      setSuccess("Номер карты успешно сохранён");
+      setSuccess("Карта успешно привязана и активирована");
       setIsEditing(false);
       setCardNumber("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка сохранения");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteCard = async () => {
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+    setShowDeleteModal(false);
+
+    try {
+      const response = await fetch("/api/users/update-card", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          cardNumber: "",
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Ошибка удаления карты");
+      }
+
+      const updatedUser = {
+        ...user,
+        loyalty_card: null,
+        has_card: false,
+      };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      document.cookie = `user=${encodeURIComponent(JSON.stringify(updatedUser))}; path=/; max-age=86400`;
+      setUser(updatedUser);
+      window.dispatchEvent(new Event("user-login"));
+
+      setSuccess("Карта удалена");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка удаления");
     } finally {
       setIsLoading(false);
     }
@@ -86,26 +127,10 @@ const ProfileCard = ({ user, setUser }: ProfileCardProps) => {
     <div className="border-t pt-8">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-[#414141]">Карта лояльности</h2>
-        {!isEditing && !user?.loyalty_card && (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="text-[#ff6633] hover:text-[#e55a2b] text-sm font-medium"
-          >
-            Добавить карту
-          </button>
-        )}
       </div>
 
-      {error && (
-        <div className="mb-4">
-          <AlertMessage type="error" message={error} />
-        </div>
-      )}
-      {success && (
-        <div className="mb-4">
-          <AlertMessage type="success" message={success} />
-        </div>
-      )}
+      {error && <AlertMessage type="error" message={error} />}
+      {success && <AlertMessage type="success" message={success} />}
 
       {isEditing ? (
         <div className="space-y-4">
@@ -134,13 +159,62 @@ const ProfileCard = ({ user, setUser }: ProfileCardProps) => {
             </button>
           </div>
         </div>
+      ) : user?.loyalty_card ? (
+        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div>
+            <p className="text-sm text-gray-500 mb-1">Привязана карта</p>
+            <p className="text-lg font-semibold text-[#414141]">
+              {formatDisplayCard(user.loyalty_card)}
+            </p>
+          </div>
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            disabled={isLoading}
+            className="px-4 py-2 text-sm text-red-500 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50"
+          >
+            Удалить
+          </button>
+        </div>
       ) : (
-        <div className="p-4 bg-gray-50 rounded-lg">
-          <p className="text-gray-700">
-            {user?.loyalty_card
-              ? formatDisplayCard(user.loyalty_card)
-              : "Номер карты не указан"}
-          </p>
+        <div className="text-center p-6 bg-gray-50 rounded-lg">
+          <p className="text-gray-500 mb-4">У вас ещё нет карты лояльности</p>
+          <Link
+            href="/loyalty-card"
+            className="inline-block px-6 py-2 bg-[#ff6633] text-white rounded-lg hover:bg-[#e55a2e] transition-colors"
+          >
+            Оформить карту
+          </Link>
+        </div>
+      )}
+
+      {/* Модальное окно удаления */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-[#414141] mb-2">Удаление карты</h3>
+            <p className="text-gray-600 mb-2">
+              Вы уверены, что хотите удалить привязанную карту?
+            </p>
+            <p className="text-sm text-gray-500 mb-4">
+              После удаления бонусы перестанут начисляться при следующих покупках.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isLoading}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleDeleteCard}
+                disabled={isLoading}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                {isLoading ? "Удаление..." : "Удалить"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

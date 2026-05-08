@@ -5,36 +5,59 @@ import { getServerUserId } from "@/utils/getServerUserId";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const client = await pool.connect();
   try {
     const userId = await getServerUserId();
     if (!userId) {
-      return NextResponse.json(
-        { message: "Не авторизован" },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: "Не авторизован" }, { status: 401 });
     }
 
-    const userResult = await pool.query(
-      "SELECT role FROM users WHERE id = $1",
-      [userId]
-    );
+    const userResult = await client.query("SELECT role FROM users WHERE id = $1", [userId]);
     const role = userResult.rows[0]?.role;
 
     if (role !== "admin" && role !== "manager") {
-      return NextResponse.json(
-        { message: "Нет доступа" },
-        { status: 403 }
-      );
+      return NextResponse.json({ message: "Нет доступа" }, { status: 403 });
+    }
+
+    // Начисляем бонусы для доставленных заказов
+    const now = new Date();
+    const pendingOrders = await client.query(
+      `SELECT * FROM orders WHERE status NOT IN ('delivered', 'cancelled')`
+    );
+
+    for (const order of pendingOrders.rows) {
+      const slotEnd = order.delivery_time_slot?.split("-")[1];
+      if (order.delivery_date && slotEnd) {
+        const [hours, minutes] = slotEnd.split(":").map(Number);
+        const deliveryEnd = new Date(order.delivery_date);
+        deliveryEnd.setHours(hours, minutes, 0, 0);
+
+        if (now > deliveryEnd) {
+          // Начисляем бонусы держателю карты
+          const userCheck = await client.query(
+            "SELECT has_card FROM users WHERE id = $1",
+            [order.user_id]
+          );
+          if (userCheck.rows.length > 0 && userCheck.rows[0].has_card) {
+            const earned = order.earned_bonuses || 0;
+            if (earned > 0) {
+              await client.query(
+                "UPDATE users SET bonuses_count = bonuses_count + $1 WHERE id = $2",
+                [earned, order.user_id]
+              );
+            }
+          }
+          // Меняем статус
+          await client.query(
+            "UPDATE orders SET status = 'delivered', updated_at = NOW() WHERE id = $1",
+            [order.id]
+          );
+        }
+      }
     }
 
     const today = new Date();
-    const todayStart = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate()
-    );
-
-    // Послезавтра
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const dayAfterTomorrow = new Date(todayStart);
     dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
 
@@ -48,10 +71,9 @@ export async function GET() {
     const dayAfterTomorrowStr = formatDate(dayAfterTomorrow);
     const todayStr = formatDate(todayStart);
 
-    // Все заказы до послезавтра включительно (без нижней границы)
-    const result = await pool.query(
-      `SELECT * FROM orders 
-       WHERE delivery_date <= $1 
+    const result = await client.query(
+      `SELECT * FROM orders
+       WHERE delivery_date <= $1
        ORDER BY delivery_date DESC, delivery_time_slot ASC`,
       [dayAfterTomorrowStr]
     );
@@ -83,7 +105,6 @@ export async function GET() {
       updatedAt: row.updated_at,
     }));
 
-    // Статистика на 3 дня
     const nextThreeDaysOrders = orders.filter(
       (order) =>
         order.deliveryDate >= todayStr &&
@@ -96,9 +117,8 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Ошибка при загрузке заказов:", error);
-    return NextResponse.json(
-      { message: "Ошибка при загрузке заказов" },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "Ошибка при загрузке заказов" }, { status: 500 });
+  } finally {
+    client.release();
   }
 }

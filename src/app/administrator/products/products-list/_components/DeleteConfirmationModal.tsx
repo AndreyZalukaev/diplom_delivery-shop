@@ -32,7 +32,7 @@ export function DeleteConfirmationModal({
             </p>
           </div>
 
-          <div className="flex gap-3 justify-end">
+          <div className="flex gap-3 justify-center">
             <button
               onClick={onClose}
               disabled={isDeleting}
