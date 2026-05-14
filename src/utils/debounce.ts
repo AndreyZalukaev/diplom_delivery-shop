@@ -1,3 +1,4 @@
+/** Debounce-обёртка */
 export function debounce<F extends (...args: unknown[]) => unknown>(
   fn: F,
   delay: number

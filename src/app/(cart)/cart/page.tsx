@@ -1,3 +1,4 @@
+/** Страница оформления заказа */
 "use client";
 
 import { useEffect, useState, useCallback } from "react";

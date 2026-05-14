@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import ArticlesSection from "./ArticlesSection";
+import ArticlesSection from "@/components/ArticlesSection";
 import { ArticleCardProps } from "@/types/articles";
 
+/** Блок "Статьи" на главной */
 const Articles = () => {
   const [articles, setArticles] = useState<ArticleCardProps[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,19 +18,17 @@ const Articles = () => {
         if (!response.ok) throw new Error("Ошибка загрузки");
         const data = await response.json();
         setArticles(data.articles || []);
-      } catch (err) {
+      } catch {
         setError("Не удалось загрузить статьи");
       } finally {
         setLoading(false);
       }
     };
-
     fetchArticles();
   }, []);
 
   if (loading) return <ArticlesSection title="Статьи" articles={[]} loading />;
   if (error) return <div className="text-red-500 text-center py-4">{error}</div>;
-
   return <ArticlesSection title="Статьи" articles={articles} viewAllButton={{ text: "Смотреть все", href: "/articles" }} />;
 };
 

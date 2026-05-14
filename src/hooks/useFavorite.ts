@@ -9,19 +9,15 @@ interface UseFavoriteReturn {
   isFavorite: (productId: number) => boolean;
 }
 
+/** Хук управления избранным */
 export const useFavorite = (userId?: number | null): UseFavoriteReturn => {
   const [favorites, setFavorites] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const loadFavorites = async () => {
-      if (!userId) {
-        setFavorites([]);
-        return;
-      }
-
+      if (!userId) { setFavorites([]); return; }
       setIsLoading(true);
-
       try {
         const response = await fetch(`/api/users/favorites?userId=${userId}`);
         if (response.ok) {
@@ -35,27 +31,19 @@ export const useFavorite = (userId?: number | null): UseFavoriteReturn => {
         setIsLoading(false);
       }
     };
-
     loadFavorites();
   }, [userId]);
 
   const toggleFavorite = useCallback(async (productId: number) => {
     if (!userId) return;
-
     const isCurrentlyFavorite = favorites.includes(productId);
     const action = isCurrentlyFavorite ? "remove" : "add";
-
     try {
       const response = await fetch("/api/users/favorites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          productId,
-          action,
-        }),
+        body: JSON.stringify({ userId, productId, action }),
       });
-
       if (response.ok) {
         if (isCurrentlyFavorite) {
           setFavorites((prev) => prev.filter((id) => id !== productId));
@@ -68,15 +56,7 @@ export const useFavorite = (userId?: number | null): UseFavoriteReturn => {
     }
   }, [userId, favorites]);
 
-  // Простая функция проверки, без useCallback
-  const isFavorite = (productId: number) => {
-    return favorites.includes(productId);
-  };
+  const isFavorite = (productId: number) => favorites.includes(productId);
 
-  return {
-    favorites,
-    isLoading,
-    toggleFavorite,
-    isFavorite,
-  };
+  return { favorites, isLoading, toggleFavorite, isFavorite };
 };

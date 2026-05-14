@@ -1,11 +1,12 @@
 import Image from "next/image";
 import { ArticleCardProps } from "@/types/articles";
-import GenericListPage from "../../components/GenericListPage";
+import GenericListPage from "@/components/GenericListPage";
 
 interface PageProps {
   searchParams: Promise<{ page?: string; itemsPerPage?: string }>;
 }
 
+/** Страница всех статей с пагинацией */
 const AllArticles = async ({ searchParams }: PageProps) => {
   const params = await searchParams;
   const page = parseInt(params.page || "1");
@@ -22,50 +23,31 @@ const AllArticles = async ({ searchParams }: PageProps) => {
     const renderArticle = (article: ArticleCardProps) => (
       <article className="bg-white h-full flex flex-col rounded overflow-hidden shadow hover:shadow-lg duration-300">
         <div className="relative h-48 w-full">
-          <Image
-            src={article.img}
-            alt={article.title}
-            fill
-            className="object-cover"
-            quality={100}
-            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          />
+          <Image src={article.img} alt={article.title} fill className="object-cover" />
         </div>
         <div className="p-4 flex-1 flex flex-col gap-y-2">
           <time className="text-xs text-gray-400">
             {new Date(article.createdAt).toLocaleDateString("ru-RU")}
           </time>
-          <h3 className="text-[#414141] text-base font-bold xl:text-lg line-clamp-2">
-            {article.title}
-          </h3>
-          <p className="text-[#414141] line-clamp-3 text-sm xl:text-base">
-            {article.text}
-          </p>
-          <button className="rounded mt-auto w-full sm:w-auto px-4 py-2 bg-[#E5FFDE] text-base text-[#70C05B] hover:bg-[#70C05B] hover:text-white transition-colors duration-300 cursor-pointer">
-            Подробнее
-          </button>
+          <h3 className="text-[#414141] text-base font-bold xl:text-lg line-clamp-2">{article.title}</h3>
+          <p className="text-[#414141] line-clamp-3 text-sm xl:text-base">{article.text}</p>
         </div>
       </article>
     );
 
     return (
       <GenericListPage
-        items={data.articles || []}
-        totalCount={data.totalCount || 0}
+        items={data.articles || data}
+        totalCount={data.totalCount || data.length}
         currentPage={page}
-        basePath="articles"
-        title="Все статьи"
+        basePath="/articles"
+        title="Статьи"
         contentType="articles"
-        renderItem={renderArticle}
+        renderItem={(article: ArticleCardProps) => renderArticle(article)}
       />
     );
-  } catch (error) {
-    console.error("Ошибка в AllArticles:", error);
-    return (
-      <div className="text-red-500 text-center py-20">
-        Ошибка загрузки статей
-      </div>
-    );
+  } catch {
+    return <div className="text-red-500 text-center py-4">Не удалось загрузить статьи</div>;
   }
 };
 

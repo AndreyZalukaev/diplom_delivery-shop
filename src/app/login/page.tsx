@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import PhoneInput from "../(auth)/_components/PhoneInput";
-import PasswordInput from "../(auth)/_components/PasswordInput";
-import { buttonStyles, formStyles } from "../(auth)/styles";
+import PhoneInput from "@/app/(auth)/_components/PhoneInput";
+import PasswordInput from "@/app/(auth)/_components/PasswordInput";
+import { buttonStyles, formStyles } from "@/app/(auth)/styles";
 import Link from "next/link";
-import { AuthFormLayout } from "../(auth)/_components/AuthFormLayout";
+import { AuthFormLayout } from "@/app/(auth)/_components/AuthFormLayout";
 
+/** Страница входа */
 const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,17 +39,12 @@ const LoginPage = () => {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: phone,
-          password: password,
-        }),
+        body: JSON.stringify({ phone, password }),
       });
 
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.message || "Ошибка авторизации");
-      }
+      if (!res.ok) throw new Error(data.message || "Ошибка авторизации");
 
       const userData = {
         id: data.user.id,
@@ -65,13 +61,8 @@ const LoginPage = () => {
       };
 
       localStorage.setItem("user", JSON.stringify(userData));
-
-      // Устанавливаем cookie для middleware (expires через 7 дней)
       document.cookie = `user=${JSON.stringify({ id: userData.id, role: userData.role })}; path=/; max-age=604800`;
-
-      // Диспатчим событие для обновления Profile
       window.dispatchEvent(new Event("user-login"));
-
       router.replace("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка авторизации");
@@ -82,57 +73,30 @@ const LoginPage = () => {
 
   return (
     <AuthFormLayout>
-      <h1 className="text-2xl font-bold text-[#414141] text-center mb-8">
-        Вход
-      </h1>
-      <form
-        onSubmit={handleSubmit}
-        autoComplete="off"
-        className="w-65 mx-auto max-h-screen flex flex-col justify-center overflow-y-auto gap-y-8"
-      >
+      <h1 className="text-2xl font-bold text-[#414141] text-center mb-8">Вход</h1>
+      <form onSubmit={handleSubmit} autoComplete="off" className="w-65 mx-auto max-h-screen flex flex-col justify-center overflow-y-auto gap-y-8">
         <div className="flex flex-col gap-y-4">
           <PhoneInput value={phone} onChangeAction={handlePhoneChange} />
           <PasswordInput
-            id="password"
-            label="Пароль"
-            value={password || ""}
-            onChangeAction={handlePasswordChange}
-            showPassword={showPassword}
-            togglePasswordVisibilityAction={() => setShowPassword(!showPassword)}
-          />
+            id="password" label="Пароль" value={password || ""}
+            onChangeAction={handlePasswordChange} showPassword={showPassword}
+            togglePasswordVisibilityAction={() => setShowPassword(!showPassword)} />
         </div>
 
-        {error && (
-          <div className="p-3 bg-red-100 text-red-700 rounded text-sm text-center">
-            {error}
-          </div>
-        )}
+        {error && <div className="p-3 bg-red-100 text-red-700 rounded text-sm text-center">{error}</div>}
 
-        <button
-          type="submit"
-          disabled={!isPhoneValid || !password || isLoading}
-          className={`
-            ${buttonStyles.base} [&&]:my-0
-            ${
-              isPhoneValid && password && !isLoading
-                ? "bg-[#ff6633] text-white hover:shadow-(--shadow-article)"
-                : "cursor-not-allowed bg-[#fcd5ba] text-[#ff6633]"
-            }
-            active:shadow-(--shadow-button-active)
-            duration-300
-          `}
-        >
+        <button type="submit" disabled={!isPhoneValid || !password || isLoading}
+          className={`${buttonStyles.base} [&&]:my-0 ${
+            isPhoneValid && password && !isLoading
+              ? "bg-[#ff6633] text-white hover:shadow-(--shadow-article)"
+              : "cursor-not-allowed bg-[#fcd5ba] text-[#ff6633]"
+          } active:shadow-(--shadow-button-active) duration-300`}>
           {isLoading ? "Вход..." : "Вход"}
         </button>
 
         <div className="flex flex-row flex-wrap mx-auto text-xs gap-4 justify-center">
-          <Link href="/register" className={`${formStyles.loginLink} w-auto px-2`}>
-            Регистрация
-          </Link>
-          <Link
-            href="/forgot-password"
-            className="h-8 text-[#414141] hover:text-black w-30 flex items-center justify-center duration-300 cursor-pointer"
-          >
+          <Link href="/register" className={`${formStyles.loginLink} w-auto px-2`}>Регистрация</Link>
+          <Link href="/forgot-password" className="h-8 text-[#414141] hover:text-black w-30 flex items-center justify-center duration-300 cursor-pointer">
             Забыли пароль?
           </Link>
         </div>

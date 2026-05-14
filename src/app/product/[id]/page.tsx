@@ -1,3 +1,4 @@
+/** Страница товара */
 import { notFound } from "next/navigation";
 import { getServerUserId } from "@/utils/getServerUserId";
 import { getServerUserRole } from "@/utils/getServerUserRole";

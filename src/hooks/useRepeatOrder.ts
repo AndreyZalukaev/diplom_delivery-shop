@@ -2,6 +2,7 @@ import { DeliveryAddress } from "@/types/order";
 import { DeliveryData } from "@/types/cart";
 import { useState } from "react";
 
+/** Хук управления повторным заказом */
 const useRepeatOrder = () => {
   const [showDeliveryButton, setShowDeliveryButton] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -11,11 +12,7 @@ const useRepeatOrder = () => {
   const handleOrderClick = () => setShowDeliveryButton(true);
   const handleDeliveryClick = () => setShowDatePicker(true);
 
-  const handleDateSelect = (
-    date: Date,
-    timeSlot: string,
-    address: DeliveryAddress
-  ) => {
+  const handleDateSelect = (date: Date, timeSlot: string, address: DeliveryAddress) => {
     const deliveryData: DeliveryData = {
       address,
       time: { date: date.toISOString().split("T")[0], timeSlot },
@@ -31,9 +28,7 @@ const useRepeatOrder = () => {
     setShowDeliveryButton(false);
   };
 
-  const handleEditDelivery = () => {
-    setShowDatePicker(true);
-  };
+  const handleEditDelivery = () => setShowDatePicker(true);
 
   const handleRepeatOrderSuccess = () => {
     setIsRepeatOrderCreated(true);
@@ -42,18 +37,9 @@ const useRepeatOrder = () => {
   };
 
   return {
-    showDatePicker,
-    showDeliveryButton,
-    handleOrderClick,
-    handleDeliveryClick,
-    handleDateSelect,
-    selectedDelivery,
-    handleCancelDelivery,
-    isRepeatOrderCreated,
-    setIsRepeatOrderCreated,
-    setSelectedDelivery,
-    handleEditDelivery,
-    handleRepeatOrderSuccess,
+    showDatePicker, showDeliveryButton, handleOrderClick, handleDeliveryClick,
+    handleDateSelect, selectedDelivery, handleCancelDelivery, isRepeatOrderCreated,
+    setIsRepeatOrderCreated, setSelectedDelivery, handleEditDelivery, handleRepeatOrderSuccess,
   };
 };
 

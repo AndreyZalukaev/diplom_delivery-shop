@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 
+/** Пул подключений к PostgreSQL */
 const pool = new Pool({
   user: process.env.POSTGRES_USER || 'postgres',
   password: process.env.POSTGRES_PASSWORD || '',

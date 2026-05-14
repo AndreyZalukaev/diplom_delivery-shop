@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 
+/** Получить роль пользователя из кук на сервере */
 export async function getServerUserRole(): Promise<string | null> {
   try {
     const cookieStore = await cookies();

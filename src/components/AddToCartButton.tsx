@@ -3,10 +3,7 @@
 import { addToCartAction } from "@/actions/addToCartActions";
 import { useState } from "react";
 import { useCart } from "@/contexts/CartContext";
-import {
-  removeMultipleOrderItemsAction,
-  updateOrderItemQuantityAction,
-} from "@/actions/orderActions";
+import { removeMultipleOrderItemsAction, updateOrderItemQuantityAction } from "@/actions/orderActions";
 import QuantitySelector from "@/app/(cart)/cart/_components/QuantitySelector";
 import Tooltip from "@/app/(auth)/_components/Tooltip";
 
@@ -15,50 +12,34 @@ interface AddToCartButtonProps {
   availableQuantity: number;
 }
 
-const AddToCartButton = ({
-  productId,
-  availableQuantity,
-}: AddToCartButtonProps) => {
+/** Кнопка добавления в корзину с селектором количества */
+const AddToCartButton = ({ productId, availableQuantity }: AddToCartButtonProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipMessage, setTooltipMessage] = useState("");
-
   const { cartItems, updateCart, fetchCart } = useCart();
 
   const cartItem = cartItems.find((item) => item.productId === productId);
   const currentQuantity = cartItem?.quantity || 0;
   const isInCart = currentQuantity > 0;
   const displayQuantity = Math.min(currentQuantity, availableQuantity);
-
   const hasReachedMaxQuantity = displayQuantity >= availableQuantity;
   const isOutOfStock = availableQuantity === 0;
 
   const showMessage = (message: string) => {
     setTooltipMessage(message);
     setShowTooltip(true);
-    setTimeout(() => {
-      setShowTooltip(false);
-    }, 3000);
+    setTimeout(() => setShowTooltip(false), 3000);
   };
 
   const handleAddToCart = async () => {
-    if (hasReachedMaxQuantity) {
-      showMessage(`Осталось ${availableQuantity} шт. этого товара`);
-      return;
-    }
+    if (hasReachedMaxQuantity) { showMessage(`Осталось ${availableQuantity} шт. этого товара`); return; }
     setIsLoading(true);
     setShowTooltip(false);
-
     try {
       const result = await addToCartAction(productId);
-
-      if (!result.success && result.message) {
-        showMessage(result.message);
-      }
-
-      if (result.success) {
-        await fetchCart();
-      }
+      if (!result.success && result.message) showMessage(result.message);
+      if (result.success) await fetchCart();
     } catch (error) {
       console.error("Ошибка добавления товара в корзину:", error);
       showMessage("Ошибка при добавлении в корзину");
@@ -69,33 +50,21 @@ const AddToCartButton = ({
 
   const handleQuantityUpdate = async (newQuantity: number) => {
     if (newQuantity < 0 || isLoading) return;
-
-    if (newQuantity > availableQuantity) {
-      showMessage(`Осталось ${availableQuantity} шт. этого товара`);
-      return;
-    }
-
+    if (newQuantity > availableQuantity) { showMessage(`Осталось ${availableQuantity} шт. этого товара`); return; }
     setIsLoading(true);
     setShowTooltip(false);
-
     try {
-      let updatedCartItems;
       if (newQuantity === 0) {
-        updatedCartItems = cartItems.filter(
-          (item) => item.productId !== productId
-        );
+        const updatedCartItems = cartItems.filter((item) => item.productId !== productId);
         updateCart(updatedCartItems);
         await removeMultipleOrderItemsAction([productId]);
       } else {
-        updatedCartItems = cartItems.map((item) =>
-          item.productId === productId
-            ? { ...item, quantity: newQuantity }
-            : item
+        const updatedCartItems = cartItems.map((item) =>
+          item.productId === productId ? { ...item, quantity: newQuantity } : item
         );
         updateCart(updatedCartItems);
         await updateOrderItemQuantityAction(productId, newQuantity);
       }
-
       await fetchCart();
     } catch (error) {
       console.error("Ошибка обновления количества:", error);
@@ -105,16 +74,9 @@ const AddToCartButton = ({
     }
   };
 
-  const handleDecrement = () => {
-    const newQuantity = Math.max(0, currentQuantity - 1);
-    handleQuantityUpdate(newQuantity);
-  };
-
+  const handleDecrement = () => handleQuantityUpdate(Math.max(0, currentQuantity - 1));
   const handleIncrement = () => {
-    if (hasReachedMaxQuantity) {
-      showMessage(`Осталось ${availableQuantity} шт. этого товара`);
-      return;
-    }
+    if (hasReachedMaxQuantity) { showMessage(`Осталось ${availableQuantity} шт. этого товара`); return; }
     handleQuantityUpdate(currentQuantity + 1);
   };
 
@@ -126,9 +88,7 @@ const AddToCartButton = ({
 
   return (
     <div className="relative">
-      {showTooltip && (
-        <Tooltip text={tooltipMessage} position="top" cardPosition={true} />
-      )}
+      {showTooltip && <Tooltip text={tooltipMessage} position="top" cardPosition={true} />}
       {isInCart && !isOutOfStock ? (
         <div className="absolute flex justify-center bottom-2 left-2 right-2">
           <QuantitySelector

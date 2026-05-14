@@ -1,7 +1,7 @@
 "use client";
 
-import { initialRegFormData } from "../constants/regFormData";
-import { RegFormData } from "../types/regFormData";
+import { initialRegFormData } from "@/constants/regFormData";
+import { RegFormData } from "@/types/regFormData";
 import { createContext, ReactNode, useContext, useState } from "react";
 
 type RegFormContextType = {
@@ -16,21 +16,18 @@ const RegFormContext = createContext<RegFormContextType>({
   resetRegForm: () => {},
 });
 
+/** Провайдер контекста формы регистрации */
 export const RegFormProvider = ({ children }: { children: ReactNode }) => {
-  const [regFormData, setRegFormData] =
-    useState<RegFormData>(initialRegFormData);
+  const [regFormData, setRegFormData] = useState<RegFormData>(initialRegFormData);
 
-  const resetRegForm = () => {
-    setRegFormData(initialRegFormData);
-  };
+  const resetRegForm = () => setRegFormData(initialRegFormData);
 
   return (
-    <RegFormContext.Provider
-      value={{ regFormData, setRegFormData, resetRegForm }}
-    >
+    <RegFormContext.Provider value={{ regFormData, setRegFormData, resetRegForm }}>
       {children}
     </RegFormContext.Provider>
   );
 };
 
+/** Хук доступа к данным формы регистрации */
 export const useRegFormContext = () => useContext(RegFormContext);

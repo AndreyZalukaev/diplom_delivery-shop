@@ -3,26 +3,20 @@
 import pool from "@/lib/pg";
 import { getServerUserId } from "@/utils/getServerUserId";
 
+/** Обновление данных пользователя после оплаты заказа */
 export const updateUserAfterPaymentAction = async (data: {
-  usedBonuses: number;
-  earnedBonuses: number;
-  purchasedProductIds: string[];
+  usedBonuses: number; earnedBonuses: number; purchasedProductIds: string[];
 }) => {
   const userId = await getServerUserId();
   if (!userId) throw new Error("Пользователь не авторизован");
 
   const userResult = await pool.query(
-    "SELECT bonuses_count, purchases FROM users WHERE id = $1",
-    [userId]
+    "SELECT bonuses_count, purchases FROM users WHERE id = $1", [userId]
   );
-
-  if (userResult.rows.length === 0) {
-    throw new Error("Пользователь не найден");
-  }
+  if (userResult.rows.length === 0) throw new Error("Пользователь не найден");
 
   const currentBonuses = Number(userResult.rows[0].bonuses_count) || 0;
   const rawPurchases = userResult.rows[0].purchases;
-
   let currentPurchases: number[] = [];
   if (Array.isArray(rawPurchases)) {
     currentPurchases = rawPurchases.map(Number);
@@ -31,37 +25,21 @@ export const updateUserAfterPaymentAction = async (data: {
   }
 
   const usedBonusesNum = Number(data.usedBonuses) || 0;
+  if (usedBonusesNum > currentBonuses) throw new Error("Недостаточно бонусов");
 
-  if (usedBonusesNum > currentBonuses) {
-    throw new Error("Недостаточно бонусов");
-  }
-
-  // Бонусы НЕ начисляем при оплате — только при доставке
   const newBonuses = currentBonuses - usedBonusesNum;
-
   const uniqueNewIds = (data.purchasedProductIds || [])
-    .map(Number)
-    .filter((id, index, self) => self.indexOf(id) === index);
-
-  const updatedPurchases = [
-    ...new Set([...currentPurchases, ...uniqueNewIds]),
-  ];
-
+    .map(Number).filter((id, index, self) => self.indexOf(id) === index);
+  const updatedPurchases = [...new Set([...currentPurchases, ...uniqueNewIds])];
   const purchasesArray = '{' + updatedPurchases.join(',') + '}';
 
   const updateResult = await pool.query(
-    `UPDATE users
-     SET bonuses_count = $1,
-         purchases = $2::integer[],
-         cart = '[]'::jsonb
-     WHERE id = $3
+    `UPDATE users SET bonuses_count = $1, purchases = $2::integer[], cart = '[]'::jsonb WHERE id = $3
      RETURNING bonuses_count, purchases`,
     [newBonuses, purchasesArray, userId]
   );
 
-  if (updateResult.rows.length === 0) {
-    throw new Error("Не удалось обновить данные пользователя");
-  }
+  if (updateResult.rows.length === 0) throw new Error("Не удалось обновить данные пользователя");
 
   return {
     bonuses: updateResult.rows[0].bonuses_count,

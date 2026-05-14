@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 
+/** Хук обратного таймера */
 const useTimer = (initialTime: number) => {
   const [timeLeft, setTimeLeft] = useState(initialTime);
   const [isTimerActive, setIsTimerActive] = useState(false);
 
   useEffect(() => {
     if (!isTimerActive) return;
-
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -17,7 +17,6 @@ const useTimer = (initialTime: number) => {
         return prev - 1;
       });
     }, 1000);
-
     return () => clearInterval(timer);
   }, [isTimerActive]);
 

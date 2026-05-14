@@ -1,3 +1,4 @@
+/** Форматирование даты рождения в ДД.ММ */
 export const formatBirthday = (birthdayDate: string | null): string => {
   if (!birthdayDate) return "";
   const date = new Date(birthdayDate);

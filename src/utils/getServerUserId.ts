@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 
+/** Получить ID пользователя из кук на сервере */
 export async function getServerUserId(): Promise<number | null> {
   try {
     const cookieStore = await cookies();

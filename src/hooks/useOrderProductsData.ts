@@ -2,6 +2,7 @@ import { IOrder } from "@/types/order";
 import { ProductCardProps } from "@/types/product";
 import { useEffect, useState } from "react";
 
+/** Хук получения данных продуктов заказа через API */
 export const useOrderProductsData = (order: IOrder) => {
   const [productsData, setProductsData] = useState<ProductCardProps[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,10 +18,7 @@ export const useOrderProductsData = (order: IOrder) => {
       setProductsData(data);
       setLoading(false);
     };
-
-    if (order.items.length > 0) {
-      fetchProductsData();
-    }
+    if (order.items.length > 0) fetchProductsData();
   }, [order.items]);
 
   return { productsData, loading };

@@ -3,6 +3,7 @@ interface LoaderProps {
   className?: string;
 }
 
+/** Индикатор загрузки */
 const Loader = ({ text = "", className = "" }: LoaderProps) => (
   <div className={`flex flex-col items-center justify-center gap-3 ${className}`}>
     <div className="relative w-12 h-12">

@@ -1,3 +1,4 @@
+/** Страница активации карты лояльности */
 "use client";
 
 import { useState } from "react";

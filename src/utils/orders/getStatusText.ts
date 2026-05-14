@@ -1,3 +1,4 @@
+/** Текст статуса заказа */
 export const getStatusText = (status: string): string => {
   const statusMap: { [key: string]: string } = {
     pending: "В процессе",

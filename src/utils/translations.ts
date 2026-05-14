@@ -1,3 +1,4 @@
+/** Переводы URL-сегментов для хлебных крошек */
 export const TRANSLATIONS: Record<string, string> = {
   "actions": "Акции",
   "new": "Новинки",

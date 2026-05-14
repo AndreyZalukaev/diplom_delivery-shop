@@ -4,10 +4,8 @@ import { CurrentProduct, PriceComparison } from "@/types/userOrder";
 import { CONFIG } from "@/config/config";
 import { ProductCardProps } from "@/types/product";
 
-export const usePriceComparison = (
-  order: IOrder,
-  productsData: ProductCardProps[]
-) => {
+/** Хук сравнения текущих цен с ценами в заказе */
+export const usePriceComparison = (order: IOrder, productsData: ProductCardProps[]) => {
   const [priceComparison, setPriceComparison] = useState<PriceComparison | null>(null);
   const [hasLoyaltyCard, setHasLoyaltyCard] = useState(false);
 
@@ -23,27 +21,16 @@ export const usePriceComparison = (
 
   const currentProducts = useMemo((): CurrentProduct[] => {
     if (!productsData || productsData.length === 0) return [];
-
     return order.items
       .map((item) => {
-        const productData = productsData.find(
-          (p) => String(p.id) === String(item.productId)
-        );
+        const productData = productsData.find((p) => String(p.id) === String(item.productId));
         if (!productData) return null;
-
         const discountMultiplier = 1 - (productData.discountPercent || 0) / 100;
         let finalPrice = Math.round(productData.basePrice * discountMultiplier * 100) / 100;
-
-        if (hasLoyaltyCard) {
-          finalPrice = finalPrice * (1 - CONFIG.CARD_DISCOUNT_PERCENT / 100);
-        }
-
+        if (hasLoyaltyCard) finalPrice = finalPrice * (1 - CONFIG.CARD_DISCOUNT_PERCENT / 100);
         return {
-          id: item.productId,
-          name: productData.name,
-          price: finalPrice,
-          basePrice: productData.basePrice,
-          discountPercent: productData.discountPercent,
+          id: item.productId, name: productData.name, price: finalPrice,
+          basePrice: productData.basePrice, discountPercent: productData.discountPercent,
           hasLoyaltyDiscount: hasLoyaltyCard,
         } as CurrentProduct;
       })
@@ -51,47 +38,26 @@ export const usePriceComparison = (
   }, [order.items, productsData, hasLoyaltyCard]);
 
   const comparePrices = useCallback((): void => {
-    if (currentProducts.length === 0) {
-      setPriceComparison(null);
-      return;
-    }
-
+    if (currentProducts.length === 0) { setPriceComparison(null); return; }
     const changedItems: PriceComparison["changedItems"] = [];
     let hasAnyChanges = false;
     let currentTotal = 0;
-
     order.items.forEach((orderItem) => {
-      const currentProduct = currentProducts.find(
-        (p) => p.id === orderItem.productId
-      );
+      const currentProduct = currentProducts.find((p) => p.id === orderItem.productId);
       if (!currentProduct) return;
-
       currentTotal += currentProduct.price * orderItem.quantity;
-
       const originalPriceWithoutLoyalty = orderItem.hasLoyaltyDiscount
-        ? orderItem.price / (1 - CONFIG.CARD_DISCOUNT_PERCENT / 100)
-        : orderItem.price;
+        ? orderItem.price / (1 - CONFIG.CARD_DISCOUNT_PERCENT / 100) : orderItem.price;
       const currentPriceWithoutLoyalty = currentProduct.hasLoyaltyDiscount
-        ? currentProduct.price / (1 - CONFIG.CARD_DISCOUNT_PERCENT / 100)
-        : currentProduct.price;
-
-      const priceChanged =
-        Math.abs(originalPriceWithoutLoyalty - currentPriceWithoutLoyalty) > 0.01;
-      const discountChanged =
-        (orderItem.discountPercent || 0) !== (currentProduct.discountPercent || 0);
-      const loyaltyStatusChanged =
-        orderItem.hasLoyaltyDiscount !== currentProduct.hasLoyaltyDiscount;
-
+        ? currentProduct.price / (1 - CONFIG.CARD_DISCOUNT_PERCENT / 100) : currentProduct.price;
+      const priceChanged = Math.abs(originalPriceWithoutLoyalty - currentPriceWithoutLoyalty) > 0.01;
+      const discountChanged = (orderItem.discountPercent || 0) !== (currentProduct.discountPercent || 0);
+      const loyaltyStatusChanged = orderItem.hasLoyaltyDiscount !== currentProduct.hasLoyaltyDiscount;
       if (priceChanged || discountChanged || loyaltyStatusChanged) {
         changedItems.push({
-          productId: orderItem.productId,
-          productName: currentProduct.name,
-          originalPrice: orderItem.price,
-          currentPrice: currentProduct.price,
-          quantity: orderItem.quantity,
-          priceChanged,
-          discountChanged,
-          loyaltyStatusChanged,
+          productId: orderItem.productId, productName: currentProduct.name,
+          originalPrice: orderItem.price, currentPrice: currentProduct.price,
+          quantity: orderItem.quantity, priceChanged, discountChanged, loyaltyStatusChanged,
           originalDiscount: orderItem.discountPercent || 0,
           currentDiscount: currentProduct.discountPercent || 0,
           originalHasLoyalty: orderItem.hasLoyaltyDiscount || false,
@@ -100,11 +66,9 @@ export const usePriceComparison = (
         hasAnyChanges = true;
       }
     });
-
     const originalTotal = order.totalAmount;
     const difference = currentTotal - originalTotal;
     const hasChanges = hasAnyChanges || Math.abs(difference) > 0.01;
-
     setPriceComparison({ hasChanges, originalTotal, currentTotal, difference, changedItems });
   }, [currentProducts, order.items, order.totalAmount]);
 

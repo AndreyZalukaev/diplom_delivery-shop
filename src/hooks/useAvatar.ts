@@ -9,6 +9,7 @@ interface UseAvatarProps {
   gender?: string;
 }
 
+/** Хук управления аватаром пользователя */
 const useAvatar = ({ userId, gender = "male" }: UseAvatarProps) => {
   const [currentAvatar, setCurrentAvatar] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -22,21 +23,14 @@ const useAvatar = ({ userId, gender = "male" }: UseAvatarProps) => {
       setCurrentAvatar(getAvatarByGender(gender));
       return;
     }
-
     setIsLoading(true);
-
     try {
-      // Сначала проверяем, есть ли аватар
       const exists = await checkAvatarExists(userId);
-      
       if (!exists) {
         setCurrentAvatar(getAvatarByGender(gender));
         return;
       }
-
-      // Если есть, загружаем
       const response = await fetch(`/api/auth/avatar/${userId}?t=${Date.now()}`);
-
       if (response.ok) {
         const blob = await response.blob();
         if (blob.size > 0) {
@@ -54,9 +48,7 @@ const useAvatar = ({ userId, gender = "male" }: UseAvatarProps) => {
     }
   }, [gender, userId]);
 
-  useEffect(() => {
-    loadAvatar();
-  }, [loadAvatar]);
+  useEffect(() => { loadAvatar(); }, [loadAvatar]);
 
   useEffect(() => {
     return () => {
@@ -66,50 +58,30 @@ const useAvatar = ({ userId, gender = "male" }: UseAvatarProps) => {
     };
   }, [currentAvatar]);
 
-  const uploadAvatar = useCallback(
-    async (file: File) => {
-      if (!userId) {
-        throw new Error("Нужен идентификатор пользователя");
+  const uploadAvatar = useCallback(async (file: File) => {
+    if (!userId) throw new Error("Нужен идентификатор пользователя");
+    if (!file.type.startsWith("image/")) throw new Error("Пожалуйста, выберите изображение");
+    if (file.size > 5 * 1024 * 1024) throw new Error("Размер файла не должен превышать 5MB");
+    setIsLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      formData.append("userId", String(userId));
+      const response = await fetch("/api/auth/upload-avatar", { method: "POST", body: formData });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Ошибка загрузки");
       }
-
-      if (!file.type.startsWith("image/")) {
-        throw new Error("Пожалуйста, выберите изображение");
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        throw new Error("Размер файла не должен превышать 5MB");
-      }
-
-      setIsLoading(true);
-
-      try {
-        const formData = new FormData();
-        formData.append("avatar", file);
-        formData.append("userId", String(userId));
-
-        const response = await fetch("/api/auth/upload-avatar", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Ошибка загрузки");
-        }
-
-        await loadAvatar();
-        window.dispatchEvent(new Event("avatar-updated"));
-
-        return true;
-      } catch (error) {
-        console.error("Error uploading avatar:", error);
-        throw error;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [loadAvatar, userId]
-  );
+      await loadAvatar();
+      window.dispatchEvent(new Event("avatar-updated"));
+      return true;
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadAvatar, userId]);
 
   return {
     avatar: currentAvatar,

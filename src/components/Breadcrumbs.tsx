@@ -7,6 +7,7 @@ import Image from "next/image";
 import iconToRight from "/public/icons-products/icon-arrow-right.svg";
 import { TRANSLATIONS } from "@/utils/translations";
 
+/** Компонент хлебных крошек (внутренний, требует useSearchParams) */
 const BreadcrumbsContent = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -21,68 +22,32 @@ const BreadcrumbsContent = () => {
     let href = "/" + pathSegments.slice(0, index + 1).join("/");
     let label = TRANSLATIONS[segment] || segment;
 
-    // Для сегмента "product" подставляем категорию
     if (segment === "product" && productCategory) {
       label = TRANSLATIONS[productCategory] || productCategory;
       href = `/category/${productCategory}`;
     }
-
-    // Для сегмента "category" перенаправляем на /catalog
-    if (segment === "category") {
-      href = "/catalog";
-      label = "Каталог";
-    }
-
-    if (
-      index === pathSegments.length - 1 &&
-      productDesc &&
-      pathSegments.includes("product")
-    ) {
+    if (segment === "category") { href = "/catalog"; label = "Каталог"; }
+    if (index === pathSegments.length - 1 && productDesc && pathSegments.includes("product")) {
       label = productDesc;
       href = `${href}?desc=${encodeURIComponent(productDesc)}`;
     }
-
-    return {
-      label,
-      href,
-      isLast: index === pathSegments.length - 1,
-    };
+    return { label, href, isLast: index === pathSegments.length - 1 };
   });
 
-  breadcrumbs.unshift({
-    label: "Главная",
-    href: "/",
-    isLast: false,
-  });
+  breadcrumbs.unshift({ label: "Главная", href: "/", isLast: false });
 
   return (
     <nav className="px-[max(12px,calc((100%-1208px)/2))] my-6">
       <ol className="flex items-center gap-4 text-[8px] md:text-xs">
         {breadcrumbs.map((item, index) => (
           <li key={index} className="flex items-center gap-4">
-            <div
-              className={
-                item.isLast
-                  ? "text-[#8f8f8f]"
-                  : "text-[#414141] hover:underline cursor-pointer"
-              }
-            >
-              {item.isLast ? (
-                item.label
-              ) : (
-                <Link href={item.href}>{item.label}</Link>
-              )}
+            <div className={item.isLast ? "text-[#8f8f8f]" : "text-[#414141] hover:underline cursor-pointer"}>
+              {item.isLast ? item.label : <Link href={item.href}>{item.label}</Link>}
             </div>
             {!item.isLast && (
-              <Image
-                src={iconToRight}
-                alt={`Переход от ${item.label} к ${
-                  breadcrumbs[breadcrumbs.length - 1].label
-                }`}
-                width={24}
-                height={24}
-                sizes="24px"
-              />
+              <Image src={iconToRight}
+                alt={`Переход от ${item.label} к ${breadcrumbs[breadcrumbs.length - 1].label}`}
+                width={24} height={24} sizes="24px" />
             )}
           </li>
         ))}
@@ -91,6 +56,7 @@ const BreadcrumbsContent = () => {
   );
 };
 
+/** Хлебные крошки с Suspense-обёрткой */
 const Breadcrumbs = () => {
   return (
     <Suspense fallback={

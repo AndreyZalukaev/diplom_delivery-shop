@@ -1,3 +1,4 @@
+/** Страница профиля пользователя */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,7 +10,7 @@ import LocationSection from "./_components/LocationSection";
 import ProfileCard from "./_components/ProfileCard";
 import ProfilePassword from "./_components/ProfilePassword";
 import ProfileName from "./_components/ProfileName";
-import Loader from "../../components/Loader";
+import Loader from "@/components/Loader";
 
 interface UserData {
   id: number;

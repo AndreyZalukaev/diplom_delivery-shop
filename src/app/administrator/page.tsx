@@ -1,3 +1,4 @@
+/** Панель администратора */
 import Link from "next/link";
 
 const AdminPanel = () => {

@@ -6,6 +6,7 @@ interface DeliveryTimes {
   updatedAt: string;
 }
 
+/** Хук загрузки расписания доставки */
 export const useDeliveryData = () => {
   const [deliverySchedule, setDeliverySchedule] = useState<Schedule>({});
   const [loading, setLoading] = useState(true);
@@ -24,7 +25,6 @@ export const useDeliveryData = () => {
         setLoading(false);
       }
     };
-
     fetchDeliverySchedule();
   }, []);
 

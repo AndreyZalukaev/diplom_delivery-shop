@@ -1,3 +1,4 @@
+/** Страница каталога */
 import { Suspense } from "react";
 "use client";
 

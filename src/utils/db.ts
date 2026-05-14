@@ -1,5 +1,6 @@
 import pool from '@/lib/pg';
 
+/** Выполнить SQL-запрос с автоматическим освобождением клиента */
 export async function query(text: string, params?: any[]) {
   const client = await pool.connect();
   try {
@@ -10,19 +11,16 @@ export async function query(text: string, params?: any[]) {
   }
 }
 
-// Утилита для пагинации
+/** Параметры пагинации */
 export function getPagination(startIdx: number, perPage: number) {
-  return {
-    offset: startIdx,
-    limit: perPage,
-  };
+  return { offset: startIdx, limit: perPage };
 }
 
-// Утилита для фильтрации по цене
+/** Построение SQL-условий фильтрации по цене */
 export function buildPriceFilter(priceFrom?: string | null, priceTo?: string | null) {
   const conditions: string[] = [];
   const values: number[] = [];
-  
+
   if (priceFrom) {
     conditions.push(`base_price >= $${values.length + 1}`);
     values.push(parseInt(priceFrom));
@@ -31,7 +29,7 @@ export function buildPriceFilter(priceFrom?: string | null, priceTo?: string | n
     conditions.push(`base_price <= $${values.length + 1}`);
     values.push(parseInt(priceTo));
   }
-  
+
   return {
     whereClause: conditions.length ? `AND ${conditions.join(' AND ')}` : '',
     values,

@@ -1,22 +1,16 @@
 import { isTimeSlotPassed } from "@/app/(cart)/cart/utils/isTimeSlotPassed";
 import { Schedule } from "@/types/deliverySchedule";
 
+/** Получить доступные временные слоты на дату */
 export const getAvailableTimeSlots = (date: Date, schedule: Schedule): string[] => {
   const dateString = date.toISOString().split("T")[0];
   const daySchedule = schedule[dateString as keyof typeof schedule];
-
-  if (!daySchedule) {
-    return [];
-  }
-
-  const availableSlots = Object.entries(daySchedule)
+  if (!daySchedule) return [];
+  return Object.entries(daySchedule)
     .filter(([timeSlot, available]) => {
       if (!available) return false;
-      const isPassed = isTimeSlotPassed(timeSlot, dateString);
-      return !isPassed;
+      return !isTimeSlotPassed(timeSlot, dateString);
     })
     .map(([timeSlot]) => timeSlot)
     .sort();
-
-  return availableSlots;
 };

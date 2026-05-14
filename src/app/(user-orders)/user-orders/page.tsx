@@ -1,3 +1,4 @@
+/** Страница заказов пользователя */
 "use client";
 
 import ErrorComponent from "@/components/ErrorComponent";
