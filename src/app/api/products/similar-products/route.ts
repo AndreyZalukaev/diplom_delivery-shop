@@ -18,19 +18,21 @@ export async function GET(request: NextRequest) {
     }
 
     const client = await pool.connect();
-    
+
     try {
       const result = await client.query(
-        `SELECT 
-          id, 
-          name, 
-          img, 
-          base_price as "basePrice", 
+        `SELECT
+          id,
+          name,
+          img,
+          description,
+          base_price as "basePrice",
           discount_percent as "discountPercent",
           jsonb_build_object('rate', rating_rate, 'count', rating_count) as rating,
-          tags
-        FROM products 
-        WHERE id != $1 
+          tags,
+          quantity
+        FROM products
+        WHERE id != $1
           AND $2 = ANY(tags)
         ORDER BY RANDOM()
         LIMIT $3`,

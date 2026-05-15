@@ -17,6 +17,9 @@ const ProfileCard = ({ user, setUser }: ProfileCardProps) => {
   const [success, setSuccess] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+  const isAdmin = user?.role === "admin";
+  if (isAdmin) return null;
+
   const formatDisplayCard = (card: string | null) => {
     if (!card) return "";
     const last4 = card.slice(-4);
@@ -187,7 +190,6 @@ const ProfileCard = ({ user, setUser }: ProfileCardProps) => {
         </div>
       )}
 
-      {/* Модальное окно удаления */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-lg p-6 max-w-md mx-4 shadow-xl">

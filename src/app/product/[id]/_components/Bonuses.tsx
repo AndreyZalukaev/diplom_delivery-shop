@@ -1,24 +1,37 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { getBonusesWord } from "@/utils/bonusWord";
 
-function getHasCard(): boolean {
+function getUserFromCookie() {
   try {
     const match = document.cookie.match(/(?:^|;\s*)user=([^;]*)/);
-    if (!match) return false;
-    const user = JSON.parse(decodeURIComponent(match[1]));
-    return user?.has_card === true;
+    if (!match) return null;
+    return JSON.parse(decodeURIComponent(match[1]));
   } catch {
-    return false;
+    return null;
   }
 }
 
 const Bonuses = ({ bonus }: { bonus: number }) => {
   const roundedBonus = Math.round(bonus);
   const bonusWord = getBonusesWord(roundedBonus);
-  const hasCard = getHasCard();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [hasCard, setHasCard] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const user = getUserFromCookie();
+    setIsAdmin(user?.role === "admin");
+    setHasCard(user?.has_card === true);
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  if (isAdmin) return null;
 
   if (!hasCard) {
     return (
@@ -56,7 +69,7 @@ const Bonuses = ({ bonus }: { bonus: number }) => {
         height={11}
       />
       <p className="text-xs text-primary">
-        Вы получаете{" "}
+        Вы получите{" "}
         <span className="font-bold">
           {roundedBonus} {bonusWord}
         </span>
