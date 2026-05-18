@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 export default function LoyaltyCardPage() {
   const router = useRouter();
-  const [userData, setUserData] = useState<{ id: number; has_card?: boolean } | null>(null);
+  const [userData, setUserData] = useState<{ id: number; has_card?: boolean; role?: string } | null>(null);
   const [cardNumber, setCardNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -14,14 +14,16 @@ export default function LoyaltyCardPage() {
   const [showAlreadyHasModal, setShowAlreadyHasModal] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  // Читаем пользователя из localStorage (полные данные), а не из куки
   useEffect(() => {
     try {
-      const match = document.cookie.match(/(?:^|;\s*)user=([^;]*)/);
-      if (!match) return setMounted(true);
-      const parsed = JSON.parse(decodeURIComponent(match[1]));
-      setUserData(parsed);
-      if (parsed?.has_card === true) {
-        setShowAlreadyHasModal(true);
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setUserData(parsed);
+        if (parsed?.has_card === true) {
+          setShowAlreadyHasModal(true);
+        }
       }
     } catch {}
     setMounted(true);
@@ -65,8 +67,10 @@ export default function LoyaltyCardPage() {
 
       const data = await res.json();
       if (res.ok) {
-        const updatedUser = { ...userData, loyalty_card: clean, has_card: true };
-        document.cookie = `user=${encodeURIComponent(JSON.stringify(updatedUser))}; path=/; max-age=86400`;
+        // Обновляем localStorage, сохраняя все поля
+        const stored = localStorage.getItem("user");
+        const fullUser = stored ? JSON.parse(stored) : {};
+        const updatedUser = { ...fullUser, loyalty_card: clean, has_card: true };
         localStorage.setItem("user", JSON.stringify(updatedUser));
         window.dispatchEvent(new Event("user-login"));
 

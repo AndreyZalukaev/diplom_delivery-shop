@@ -1,20 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import { query } from "@/utils/db";
+import pool from "@/lib/pg";
 
-function formatPhoneForDB(phone: string): string {
-  const digits = phone.replace(/\D/g, '');
-  let cleaned = digits;
-  if (cleaned.startsWith('8')) {
-    cleaned = '7' + cleaned.slice(1);
-  }
-  if (cleaned.startsWith('7') && cleaned.length === 11) {
-    return `+7 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7, 9)}-${cleaned.slice(9, 11)}`;
-  }
-  return phone;
-}
-
+/** Сброс пароля по телефону — телефон в БД хранится в формате +7XXXXXXXXXX */
 export async function POST(request: NextRequest) {
+  const client = await pool.connect();
   try {
     const body = await request.json();
     let { phoneNumber, newPassword } = body;
@@ -33,16 +23,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const formattedPhone = formatPhoneForDB(phoneNumber);
+    // Приводим телефон к формату БД: +7XXXXXXXXXX
+    const digits = phoneNumber.replace(/\D/g, "");
+    const dbPhone = "+" + digits;
+
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(newPassword, saltRounds);
 
-    const result = await query(
-      `UPDATE users 
+    const result = await client.query(
+      `UPDATE users
        SET password_hash = $1
        WHERE phone = $2 AND phone_verified = true
        RETURNING id, phone`,
-      [passwordHash, formattedPhone]
+      [passwordHash, dbPhone]
     );
 
     if (result.rows.length === 0) {
@@ -62,5 +55,7 @@ export async function POST(request: NextRequest) {
       { error: "Внутренняя ошибка сервера" },
       { status: 500 }
     );
+  } finally {
+    client.release();
   }
 }

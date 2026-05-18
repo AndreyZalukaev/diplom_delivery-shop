@@ -9,6 +9,7 @@ interface ProfileCardProps {
   setUser: (user: any) => void;
 }
 
+/** Секция карты лояльности в профиле — скрыта для админа */
 const ProfileCard = ({ user, setUser }: ProfileCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [cardNumber, setCardNumber] = useState("");
@@ -34,6 +35,7 @@ const ProfileCard = ({ user, setUser }: ProfileCardProps) => {
     setSuccess(null);
   };
 
+  /** Сохранение новой карты */
   const handleSave = async () => {
     if (!cardNumber || cardNumber.length !== 16) {
       setError("Номер карты должен содержать 16 цифр");
@@ -65,8 +67,8 @@ const ProfileCard = ({ user, setUser }: ProfileCardProps) => {
         loyalty_card: cardNumber,
         has_card: true,
       };
+      // Обновляем только localStorage, куку не трогаем
       localStorage.setItem("user", JSON.stringify(updatedUser));
-      document.cookie = `user=${encodeURIComponent(JSON.stringify(updatedUser))}; path=/; max-age=86400`;
       setUser(updatedUser);
       window.dispatchEvent(new Event("user-login"));
 
@@ -80,6 +82,7 @@ const ProfileCard = ({ user, setUser }: ProfileCardProps) => {
     }
   };
 
+  /** Удаление карты */
   const handleDeleteCard = async () => {
     setIsLoading(true);
     setError(null);
@@ -107,7 +110,6 @@ const ProfileCard = ({ user, setUser }: ProfileCardProps) => {
         has_card: false,
       };
       localStorage.setItem("user", JSON.stringify(updatedUser));
-      document.cookie = `user=${encodeURIComponent(JSON.stringify(updatedUser))}; path=/; max-age=86400`;
       setUser(updatedUser);
       window.dispatchEvent(new Event("user-login"));
 

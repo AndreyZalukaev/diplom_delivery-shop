@@ -1,5 +1,6 @@
 import { RegFormData } from "@/types/regFormData";
 
+/** Валидация формы регистрации (регион не проверяется — все в одном регионе) */
 export const validateRegisterForm = (formData: RegFormData) => {
   // Проверка телефона
   if (!formData.phone || formData.phone === "+7" || formData.phone.replace(/\D/g, "").length < 11) {
@@ -53,14 +54,6 @@ export const validateRegisterForm = (formData: RegFormData) => {
     return {
       isValid: false,
       errorMessage: "Введите корректную дату рождения",
-    };
-  }
-
-  // Проверка региона
-  if (!formData.region) {
-    return {
-      isValid: false,
-      errorMessage: "Выберите регион",
     };
   }
 

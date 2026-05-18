@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { getBonusesWord } from "@/utils/bonusWord";
 
-function getUserFromCookie() {
+/** Чтение пользователя из localStorage (полные данные) */
+function getUserFromStorage() {
   try {
-    const match = document.cookie.match(/(?:^|;\s*)user=([^;]*)/);
-    if (!match) return null;
-    return JSON.parse(decodeURIComponent(match[1]));
+    const data = localStorage.getItem("user");
+    if (!data) return null;
+    return JSON.parse(data);
   } catch {
     return null;
   }
@@ -22,17 +23,27 @@ const Bonuses = ({ bonus }: { bonus: number }) => {
   const [hasCard, setHasCard] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    const user = getUserFromCookie();
+  /** Обновление состояния из localStorage */
+  const updateFromStorage = useCallback(() => {
+    const user = getUserFromStorage();
     setIsAdmin(user?.role === "admin");
     setHasCard(user?.has_card === true);
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    updateFromStorage();
+    // При обновлении данных пользователя перечитываем localStorage
+    window.addEventListener("user-login", updateFromStorage);
+    return () => window.removeEventListener("user-login", updateFromStorage);
+  }, [updateFromStorage]);
+
   if (!mounted) return null;
 
+  // Админ не видит блок бонусов
   if (isAdmin) return null;
 
+  // Пользователь без карты — предложение получить карту
   if (!hasCard) {
     return (
       <div className="flex flex-col items-center gap-2 mx-auto mb-2">
@@ -60,6 +71,7 @@ const Bonuses = ({ bonus }: { bonus: number }) => {
     );
   }
 
+  // Пользователь с картой — показывает начисляемые бонусы
   return (
     <div className="w-[212px] flex flex-row gap-x-2 items-center justify-center mx-auto mb-2">
       <Image

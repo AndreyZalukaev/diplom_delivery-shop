@@ -7,11 +7,7 @@ import PersonInput from "@/app/(auth)/(reg)/PersonInput";
 import PasswordInput from "@/app/(auth)/_components/PasswordInput";
 import DateInput from "@/app/(auth)/(reg)/DateInput";
 import SelectCity from "@/app/(auth)/(reg)/SelectCity";
-import SelectRegionPlaceholder from "@/app/(auth)/(reg)/_components/SelectRegionPlaceholder";
 import GenderSelect from "@/app/(auth)/(reg)/GenderSelect";
-import CardInput from "@/app/(auth)/(reg)/CardInput";
-import CheckboxCard from "@/app/(auth)/(reg)/CheckboxCard";
-import EmailInput from "@/app/(auth)/(reg)/EmailInput";
 import RegFormFooter from "@/app/(auth)/(reg)/RegFormFooter";
 import { validateRegisterForm } from "@/utils/validation/form";
 import Loader from "@/components/Loader";
@@ -19,6 +15,7 @@ import ErrorComponent from "@/components/ErrorComponent";
 import { AuthFormLayout } from "@/app/(auth)/_components/AuthFormLayout";
 import { useRegFormContext } from "@/contexts/RegFormContext";
 
+/** Страница регистрации — двухколоночная форма, без карты и почты */
 const RegisterPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<{
@@ -30,6 +27,7 @@ const RegisterPage = () => {
   const { regFormData, setRegFormData } = useRegFormContext();
   const router = useRouter();
 
+  /** Обработчик изменения полей формы */
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -40,17 +38,10 @@ const RegisterPage = () => {
       setInvalidFormMessage("");
     }
 
-    if (id === "hasCard" && value === true) {
-      setRegFormData((prev) => ({
-        ...prev,
-        hasCard: true,
-        card: "",
-      }));
-      return;
-    }
     setRegFormData((prev) => ({ ...prev, [id]: value }));
   };
 
+  /** Отправка формы регистрации */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -71,15 +62,15 @@ const RegisterPage = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: regFormData.email,
+          email: "",
           password: regFormData.password,
           name: `${regFormData.firstName} ${regFormData.surname}`.trim(),
           phone: regFormData.phone,
           birthDate: regFormData.birthdayDate,
-          region: regFormData.region,
+          region: "",
           location: regFormData.location,
           gender: regFormData.gender,
-          loyaltyCard: regFormData.hasCard ? null : regFormData.card,
+          loyaltyCard: null,
         }),
       });
 
@@ -89,7 +80,11 @@ const RegisterPage = () => {
         throw new Error(data.error || 'Ошибка регистрации');
       }
 
-      localStorage.setItem("user", JSON.stringify({ phone: regFormData.phone })); router.replace("/verify-phone");
+      // Сохраняем телефон в БД-формате +7XXXXXXXXXX для verify-phone
+      const dbPhone = "+" + regFormData.phone.replace(/\D/g, "");
+      localStorage.setItem("user", JSON.stringify({ phone: dbPhone }));
+      document.cookie = `user=${JSON.stringify({ has_card: false, role: "user" })}; path=/; max-age=86400`;
+      router.replace("/verify-phone");
     } catch (err) {
       setError({
         error: err instanceof Error ? err : new Error('Ошибка регистрации'),
@@ -111,15 +106,15 @@ const RegisterPage = () => {
   return (
     <AuthFormLayout variant="register">
       <h1 className="text-2xl font-bold text-center mb-10">Регистрация</h1>
-      <h2 className="text-lg font-bold text-center mb-6">
-        Обязательные поля
-      </h2>
+
       <form
         onSubmit={handleSubmit}
         autoComplete="off"
         className="w-full max-w-[552px] mx-auto flex flex-col justify-center"
       >
+        {/* Двухколоночная вёрстка обязательных полей */}
         <div className="w-full flex flex-row flex-wrap justify-center gap-x-8 gap-y-4">
+          {/* Левая колонка: телефон, фамилия, имя, пароль, подтверждение */}
           <div className="flex flex-col gap-y-4 items-start">
             <PhoneInput
               id="phone"
@@ -162,16 +157,14 @@ const RegisterPage = () => {
               compareWith={regFormData.password}
             />
           </div>
+
+          {/* Правая колонка: дата рождения, город, пол */}
           <div className="flex flex-col gap-y-4 items-start">
             <DateInput
               value={regFormData.birthdayDate}
               onChangeAction={(value) =>
                 setRegFormData((prev) => ({ ...prev, birthdayDate: value }))
               }
-            />
-            <SelectRegionPlaceholder
-              value={regFormData.region}
-              onChangeAction={handleChange}
             />
             <SelectCity
               value={regFormData.location}
@@ -185,36 +178,15 @@ const RegisterPage = () => {
             />
           </div>
         </div>
-        <h2 className="text-lg font-bold text-center mb-6 mt-10">
-          Необязательные поля
-        </h2>
-        <div className="w-full flex flex-row flex-wrap justify-center gap-x-8 gap-y-4">
-          <div className="flex flex-col w-65 gap-y-4">
-            <CardInput
-              id="card"
-              label="Номер карты"
-              value={regFormData.card || ""}
-              onChangeAction={handleChange}
-              disabled={regFormData.hasCard}
-            />
-            <CheckboxCard
-              id="hasCard"
-              checked={regFormData.hasCard || false}
-              onChangeAction={handleChange}
-            />
-          </div>
-          <EmailInput
-            id="email"
-            label="Email"
-            value={regFormData.email || ""}
-            onChangeAction={handleChange}
-          />
-        </div>
+
+        {/* Ошибки валидации */}
         {invalidFormMessage && (
           <div className="text-red-500 text-center my-4 p-4 bg-red-50 rounded">
             {invalidFormMessage}
           </div>
         )}
+
+        {/* Кнопка отправки */}
         <RegFormFooter isFormValid={isFormValid()} />
       </form>
     </AuthFormLayout>

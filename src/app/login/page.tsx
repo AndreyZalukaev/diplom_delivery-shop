@@ -46,6 +46,7 @@ const LoginPage = () => {
 
       if (!res.ok) throw new Error(data.message || "Ошибка авторизации");
 
+      // Полные данные в localStorage — нужны для Bonuses и профиля
       const userData = {
         id: data.user.id,
         name: data.user.name,
@@ -61,6 +62,7 @@ const LoginPage = () => {
       };
 
       localStorage.setItem("user", JSON.stringify(userData));
+      // Кука только для middleware (id и role)
       document.cookie = `user=${JSON.stringify({ id: userData.id, role: userData.role })}; path=/; max-age=604800`;
       window.dispatchEvent(new Event("user-login"));
       router.replace("/");
