@@ -4,75 +4,44 @@ import bcrypt from "bcrypt";
 
 function parseBirthDate(dateStr: string): string | null {
   if (!dateStr) return null;
-
   const parts = dateStr.split('.');
   if (parts.length !== 3) return null;
-
   const [day, month, year] = parts;
-
   if (!day || !month || !year) return null;
   if (isNaN(parseInt(day)) || isNaN(parseInt(month)) || isNaN(parseInt(year))) return null;
-
   return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 }
 
+declare global { var __smsCodes: Record<string, { code: string; expires: number }> | undefined; }
+globalThis.__smsCodes = globalThis.__smsCodes || {};
+
 export async function POST(request: Request) {
   try {
-    const {
-      email,
-      password,
-      name,
-      phone,
-      birthDate,
-      region,
-      location,
-      gender,
-      loyaltyCard,
-    } = await request.json();
+    const { email, password, name, phone, birthDate, region, location, gender, loyaltyCard } = await request.json();
+    const cleanPhone = phone.replace(/\D/g, "");
 
-    const existingUser = await query(
-      `SELECT id FROM users WHERE phone = $1`,
-      [phone]
-    );
-
+    const existingUser = await query(`SELECT id FROM users WHERE phone = $1`, [phone]);
     if (existingUser.rows.length > 0) {
-      return NextResponse.json(
-        { error: "Пользователь с таким телефоном уже существует" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Пользователь с таким телефоном уже существует" }, { status: 400 });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const formattedBirthDate = birthDate ? parseBirthDate(birthDate) : null;
 
     const result = await query(
-      `INSERT INTO users
-        (phone, name, email, password_hash, birth_date, region, location, gender, loyalty_card, created_at, email_verified, phone_verified, role)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, true, true, 'user')
+      `INSERT INTO users (phone, name, email, password_hash, birth_date, region, location, gender, loyalty_card, created_at, email_verified, phone_verified)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, true, false)
        RETURNING id`,
       [phone, name, email || null, hashedPassword, formattedBirthDate, region || null, location || null, gender || null, loyaltyCard || null]
     );
 
-    const userId = result.rows[0].id;
+    const code = String(Math.floor(1000 + Math.random() * 9000));
+    globalThis.__smsCodes![cleanPhone] = { code, expires: Date.now() + 5 * 60 * 1000 };
+    console.log(`\n=== SMS-КОД для ${phone}: ${code} ===\n`);
 
-    return NextResponse.json(
-      {
-        success: true,
-        userId: userId,
-        user: {
-          phone,
-          name,
-          email,
-          role: 'user',
-        },
-      },
-      { status: 201 }
-    );
+    return NextResponse.json({ success: true, userId: result.rows[0].id, phone }, { status: 201 });
   } catch (error) {
     console.error("Ошибка регистрации:", error);
-    return NextResponse.json(
-      { error: "Ошибка регистрации" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Ошибка регистрации" }, { status: 500 });
   }
 }

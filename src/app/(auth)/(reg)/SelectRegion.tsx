@@ -3,7 +3,7 @@
 import { ChangeEvent } from "react";
 import Image from "next/image";
 import { formStyles } from "../styles";
-import { regions } from "../../../data/regions";
+import { regions } from "@/data/regions";
 
 interface SelectRegionProps {
   value: string;
@@ -12,7 +12,7 @@ interface SelectRegionProps {
 
 const SelectRegion = ({ value, onChangeAction }: SelectRegionProps) => {
   return (
-    <div>
+    <div className="hidden">
       <label htmlFor="region" className={formStyles.label}>
         Регион
       </label>

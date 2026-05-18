@@ -1,6 +1,6 @@
 'use client';
 
-import { formStyles } from '../styles';
+import { formStyles } from '@/app/(auth)/styles';
 
 interface PersonInputProps {
   id: string;
@@ -18,7 +18,7 @@ const PersonInput = ({ id, label, value, onChange }: PersonInputProps) => {
       <input
         id={id}
         type="text"
-        value={value}
+        value={value || ""}
         onChange={onChange}
         className={formStyles.input}
       />

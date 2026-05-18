@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import IconVision from "@/components/svg/IconVision";
 import Tooltip from '@/app/(auth)/_components/Tooltip';
-import { formStyles } from '../styles';
+import { formStyles } from '@/app/(auth)/styles';
 
 interface PasswordInputProps {
   id: string;
