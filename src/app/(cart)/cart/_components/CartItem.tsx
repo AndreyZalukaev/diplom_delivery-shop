@@ -108,7 +108,7 @@ const CartItem = memo(function CartItem({
           <div className="flex-1 flex min-w-[224px] md:flex-initial flex-col gap-y-2.5 p-2.5">
             <Link
               className="text-base hover:text-[#ff6633] cursor-pointer"
-              href={`/catalog/${productData.tags[0]}/${item.productId}`}
+              href={`/product/${item.productId}`}
             >
               {productData.description}
             </Link>
