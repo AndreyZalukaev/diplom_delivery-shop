@@ -32,14 +32,12 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const formattedBirthDate = birthDate ? parseBirthDate(birthDate) : null;
-    // Пустая строка для email, если не передан (поле NOT NULL в БД)
-    const userEmail = email || "";
 
     const result = await query(
       `INSERT INTO users (phone, name, email, password_hash, birth_date, region, location, gender, loyalty_card, created_at, email_verified, phone_verified)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, true, false)
        RETURNING id`,
-      [dbPhone, name, userEmail, hashedPassword, formattedBirthDate, region || "", location || "", gender || "", loyaltyCard || null]
+      [dbPhone, name, null, hashedPassword, formattedBirthDate, region || "", location || "", gender || "", loyaltyCard || null]
     );
 
     // Генерируем SMS-код и сохраняем в памяти

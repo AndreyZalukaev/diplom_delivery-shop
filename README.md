@@ -33,14 +33,14 @@
 
 **1. Клонировать репозиторий**
 ```
-git clone https://github.com/TominVadim/delivery-shop.git
+git clone git@github.com:I-Skadaar-I/diplom_delivery-shop.git
 cd delivery-shop
 ```
 **2. Установить зависимости**
 ```
 npm install
 ```
-**3. Создать файл .env.local в корне проекта**
+**3. Создать файл .env в корне проекта**
 ```
 DB_HOST=localhost
 DB_PORT=5432
